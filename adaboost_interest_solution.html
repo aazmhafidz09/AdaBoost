@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pembahasan AdaBoost — Dataset Tertarik</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F0;--surface:#FFFFFF;--surface2:#F0EDE6;
+  --border:#E2DDD5;--text:#1A1814;--muted:#7A746B;
+  --green:#1A5E38;--green-bg:#DCF0E6;
+  --red:#8B2218;--red-bg:#FDECEA;
+  --blue:#1E3E7A;--blue-bg:#E8EDFA;
+  --amber:#7A4500;--amber-bg:#FFF3E0;
+  --purple:#4B1A7A;--purple-bg:#EEE8FA;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Fraunces',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6}
+.page{max-width:900px;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+
+/* header */
+.tag{display:inline-block;color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:3px 10px;border-radius:3px;margin-bottom:.6rem}
+.tag-main{background:#1A1814}
+.tag-iter{background:var(--blue)}
+.tag-final{background:var(--green)}
+h1{font-family:var(--display);font-size:2rem;font-weight:600;line-height:1.2;margin-bottom:.4rem}
+.subtitle{color:var(--muted);font-size:14px;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1.5px solid var(--border)}
+
+/* section */
+.iter-head{display:flex;align-items:center;gap:10px;margin:2.2rem 0 1rem}
+.iter-badge{background:var(--text);color:#fff;font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:4px;white-space:nowrap;letter-spacing:.04em}
+.iter-title{font-family:var(--display);font-size:1.1rem;font-weight:600}
+
+/* card */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.1rem}
+.card-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.7rem;display:flex;align-items:center;gap:8px}
+.card-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* formula */
+.formula{background:#111;color:#DDD8D0;font-family:var(--mono);font-size:13px;padding:1rem 1.25rem;border-radius:10px;margin:.7rem 0;line-height:2.1;overflow-x:auto}
+.hl{color:#F4A35A}.hl2{color:#6DD49A}.hl3{color:#79B8FF}.hlr{color:#F28B8B}.hlp{color:#C9A0FF}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:.8rem 0}
+.metric{background:var(--surface2);border-radius:8px;padding:.875rem 1rem;border:1px solid var(--border)}
+.metric-label{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:3px}
+.metric-val{font-size:1.35rem;font-weight:600;font-family:var(--mono)}
+.mv-red{color:var(--red)}.mv-green{color:var(--green)}.mv-blue{color:var(--blue)}.mv-amber{color:var(--amber)}
+
+/* table */
+.tbl-wrap{overflow-x:auto;margin:.7rem 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:#1A1814;color:#fff}
+th{padding:8px 10px;text-align:center;font-weight:500;font-size:11px;letter-spacing:.04em;white-space:nowrap}
+th:first-child{text-align:left;padding-left:14px}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+td{padding:7px 10px;text-align:center;font-family:var(--mono);font-size:13px}
+td:first-child{text-align:left;padding-left:14px;font-weight:500}
+.row-wrong{background:#FFF5F5}
+.row-right{background:#F7FBF8}
+
+/* chips */
+.chip{display:inline-block;padding:1px 9px;border-radius:20px;font-size:11px;font-weight:500;font-family:var(--sans);white-space:nowrap}
+.c-ya{background:var(--green-bg);color:var(--green)}
+.c-tdk{background:var(--red-bg);color:var(--red)}
+.c-lk{background:var(--blue-bg);color:var(--blue)}
+.c-pr{background:var(--purple-bg);color:var(--purple)}
+.c-kota{background:#E8F4FB;color:#0C4A6A}
+.c-desa{background:#F1EFE8;color:#444}
+.c-ok{background:var(--green-bg);color:var(--green)}
+.c-err{background:var(--red-bg);color:var(--red)}
+.c-pos{background:var(--blue-bg);color:var(--blue)}
+.c-neg{background:var(--amber-bg);color:var(--amber)}
+
+/* note */
+.note{background:var(--amber-bg);border-left:3px solid #D4A017;border-radius:0 8px 8px 0;padding:.75rem 1rem;font-size:13px;color:var(--amber);margin:.7rem 0;line-height:1.6}
+.note strong{color:#5A3200}
+
+/* step number */
+.step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--text);color:#fff;font-size:11px;font-weight:500;font-family:var(--mono);margin-right:6px;flex-shrink:0}
+
+/* divider */
+.divider{border:none;border-top:1px dashed var(--border);margin:2rem 0}
+
+/* verify */
+.verify{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:.5rem;padding:.4rem .75rem;background:var(--surface2);border-radius:6px;display:inline-block}
+
+/* bar chart */
+.bars{display:flex;flex-direction:column;gap:7px;margin:.7rem 0}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--mono)}
+.bar-label{min-width:70px;color:var(--muted)}
+.bar-track{flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s}
+.bar-val{min-width:60px;text-align:right}
+
+/* final banner */
+.banner{background:#1A1814;color:#fff;border-radius:14px;padding:2rem;text-align:center;margin-top:2.5rem}
+.banner-score{font-family:var(--display);font-size:3.5rem;font-weight:600;line-height:1}
+.banner-sub{color:#8C8480;font-size:14px;margin-top:.4rem}
+.banner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem}
+.bg-item{background:rgba(255,255,255,.07);border-radius:8px;padding:.875rem}
+.bg-val{font-family:var(--mono);font-size:1.15rem;font-weight:500}
+.bg-label{font-size:12px;color:#8C8480;margin-top:2px}
+
+/* wrong explain */
+.wrong-box{background:#FFF5F5;border:1.5px solid #F5C6C6;border-radius:10px;padding:1rem 1.25rem;margin:.7rem 0}
+.wrong-title{font-weight:500;color:var(--red);margin-bottom:.4rem;font-size:14px}
+.wrong-body{font-size:13px;color:var(--text);line-height:1.7;font-family:var(--mono)}
+
+@media(max-width:600px){.metrics{grid-template-columns:1fr 1fr}.banner-grid{grid-template-columns:1fr 1fr}h1{font-size:1.6rem}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ===== HEADER ===== -->
+<div class="tag tag-main">PEMBAHASAN LENGKAP</div>
+<h1>AdaBoost — Dataset Tertarik<br><span style="color:var(--muted);font-weight:300">Jenis Kelamin · Tempat Tinggal · Usia</span></h1>
+<div class="subtitle">Perhitungan step-by-step seluruh 3 iterasi AdaBoost: prediksi, error, alpha, update bobot, dan prediksi akhir</div>
+
+<!-- ===== DATASET ===== -->
+<div class="card">
+  <div class="card-label">Dataset Awal — 8 Data Point</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>Jenis Kelamin</th><th>Tempat Tinggal</th><th>Usia</th><th>Tertarik (yᵢ)</th><th>W₀(i)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-kota">Kota</span></td><td>20</td><td><span class="chip c-ya">+1 (Ya)</span></td><td>0.1250</td></tr>
+        <tr><td>2</td><td><span class="chip c-pr">Perempuan</span></td><td><span class="chip c-kota">Kota</span></td><td>18</td><td><span class="chip c-ya">+1 (Ya)</span></td><td>0.1250</td></tr>
+        <tr><td>3</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-desa">Desa</span></td><td>21</td><td><span class="chip c-ya">+1 (Ya)</span></td><td>0.1250</td></tr>
+        <tr><td>4</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-kota">Kota</span></td><td>16</td><td><span class="chip c-ya">+1 (Ya)</span></td><td>0.1250</td></tr>
+        <tr><td>5</td><td><span class="chip c-pr">Perempuan</span></td><td><span class="chip c-kota">Kota</span></td><td>18</td><td><span class="chip c-tdk">−1 (Tidak)</span></td><td>0.1250</td></tr>
+        <tr><td>6</td><td><span class="chip c-pr">Perempuan</span></td><td><span class="chip c-kota">Kota</span></td><td>12</td><td><span class="chip c-tdk">−1 (Tidak)</span></td><td>0.1250</td></tr>
+        <tr><td>7</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-desa">Desa</span></td><td>16</td><td><span class="chip c-tdk">−1 (Tidak)</span></td><td>0.1250</td></tr>
+        <tr><td>8</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-kota">Kota</span></td><td>17</td><td><span class="chip c-tdk">−1 (Tidak)</span></td><td>0.1250</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="formula">W₀(i) = 1/N = 1/8 = <span class="hl2">0.1250</span> &nbsp;← bobot awal seragam untuk semua data<br>Label: <span class="hl2">Ya → +1</span> &nbsp;|&nbsp; <span class="hlr">Tidak → −1</span></div>
+</div>
+
+<div class="card" style="margin-bottom:2rem">
+  <div class="card-label">3 Weak Model yang Digunakan</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+    <div style="background:var(--blue-bg);border-radius:8px;padding:.875rem 1rem">
+      <div style="font-size:11px;color:var(--blue);font-family:var(--mono);margin-bottom:4px">MODEL 1</div>
+      <div style="font-size:13px;font-family:var(--mono)">JK = Laki-Laki<br>→ ŷ = +1<br>else → ŷ = −1</div>
+    </div>
+    <div style="background:var(--green-bg);border-radius:8px;padding:.875rem 1rem">
+      <div style="font-size:11px;color:var(--green);font-family:var(--mono);margin-bottom:4px">MODEL 2</div>
+      <div style="font-size:13px;font-family:var(--mono)">Usia ≥ 18<br>→ ŷ = +1<br>else → ŷ = −1</div>
+    </div>
+    <div style="background:var(--amber-bg);border-radius:8px;padding:.875rem 1rem">
+      <div style="font-size:11px;color:var(--amber);font-family:var(--mono);margin-bottom:4px">MODEL 3</div>
+      <div style="font-size:13px;font-family:var(--mono)">TT = Kota<br>→ ŷ = +1<br>else → ŷ = −1</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ===== ITERASI 1 ===== -->
+<div class="tag tag-iter">ITERASI 1</div>
+<div class="iter-head">
+  <span class="iter-badge">MODEL 1</span>
+  <span class="iter-title">if Jenis Kelamin = Laki-Laki → +1, else −1</span>
+</div>
+
+<!-- Step 1 -->
+<div class="card">
+  <div class="card-label"><span class="step">1</span>Prediksi h₁(xᵢ)</div>
+  <div class="note">Rule: Laki-Laki → +1 &nbsp;|&nbsp; Perempuan → −1</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>Jenis Kelamin</th><th>yᵢ (asli)</th><th>h₁(xᵢ) (prediksi)</th><th>yᵢ = h₁?</th></tr></thead>
+      <tbody>
+        <tr class="row-right"><td>1</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-ok">✓ Benar</span></td></tr>
+        <tr class="row-wrong"><td>2</td><td><span class="chip c-pr">Perempuan</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-err">✗ Salah</span></td></tr>
+        <tr class="row-right"><td>3</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-ok">✓ Benar</span></td></tr>
+        <tr class="row-right"><td>4</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-ok">✓ Benar</span></td></tr>
+        <tr class="row-right"><td>5</td><td><span class="chip c-pr">Perempuan</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-ok">✓ Benar</span></td></tr>
+        <tr class="row-right"><td>6</td><td><span class="chip c-pr">Perempuan</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-ok">✓ Benar</span></td></tr>
+        <tr class="row-wrong"><td>7</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-err">✗ Salah</span></td></tr>
+        <tr class="row-wrong"><td>8</td><td><span class="chip c-lk">Laki-Laki</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-err">✗ Salah</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">Data <strong>salah</strong>: No. 2, 7, 8 &nbsp;(3 dari 8 data)<br>No.2: Perempuan tapi label +1 | No.7&8: Laki-Laki tapi label −1</div>
+</div>
+
+<!-- Step 2 -->
+<div class="card">
+  <div class="card-label"><span class="step">2</span>Hitung ε₁ — Weighted Error</div>
+  <div class="formula">
+ε₁ = <span class="hl">Σ</span> W₀(i) × <span class="hl2">𝟙[h₁(xᵢ) ≠ yᵢ]</span><br>
+<br>
+   = W₀(2) + W₀(7) + W₀(8)<br>
+   = 0.1250 + 0.1250 + 0.1250<br>
+   = <span class="hl2">3 × 0.1250 = 0.3750</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">ε₁</div><div class="metric-val mv-red">0.3750</div></div>
+    <div class="metric"><div class="metric-label">data salah</div><div class="metric-val">3 / 8</div></div>
+    <div class="metric"><div class="metric-label">bobot tiap salah</div><div class="metric-val">0.1250</div></div>
+  </div>
+</div>
+
+<!-- Step 3 -->
+<div class="card">
+  <div class="card-label"><span class="step">3</span>Hitung α₁ — Bobot Model</div>
+  <div class="formula">
+α₁ = ½ × ln<span class="hl">( (1 − ε₁) / ε₁ )</span><br>
+   = ½ × ln( 0.6250 / 0.3750 )<br>
+   = ½ × ln( <span class="hl2">1.6667</span> )<br>
+   = ½ × <span class="hl">0.5108</span><br>
+   = <span class="hl2">0.2554</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">α₁</div><div class="metric-val mv-blue">0.2554</div></div>
+    <div class="metric"><div class="metric-label">1 − ε₁</div><div class="metric-val">0.6250</div></div>
+    <div class="metric"><div class="metric-label">ln(1.6667)</div><div class="metric-val">0.5108</div></div>
+  </div>
+  <div class="note">α₁ = 0.2554 → nilai kecil karena error lumayan besar (0.375). Model ini hanya punya sedikit "suara" di prediksi akhir.</div>
+</div>
+
+<!-- Step 4 -->
+<div class="card">
+  <div class="card-label"><span class="step">4</span>Update Bobot W₁(i)</div>
+  <div class="formula">
+W_raw(i) = W₀(i) × exp( <span class="hl">−α₁</span> × <span class="hl2">yᵢ</span> × <span class="hl3">h₁(xᵢ)</span> )<br>
+<br>
+Jika <span class="hl2">BENAR</span>: yᵢ × h₁ = +1 → exp(−0.2554 × 1) = exp(−0.2554) = <span class="hl2">0.7746</span><br>
+Jika <span class="hlr">SALAH</span> : yᵢ × h₁ = −1 → exp(−0.2554 × −1) = exp(+0.2554) = <span class="hlr">1.2910</span><br>
+<br>
+W_raw (benar, 5 data) = 0.1250 × 0.7746 = <span class="hl2">0.0968</span><br>
+W_raw (salah, 3 data) = 0.1250 × 1.2910 = <span class="hlr">0.1614</span><br>
+<br>
+Z₁ = (5 × 0.0968) + (3 × 0.1614)<br>
+   = 0.4841 + 0.4841 = <span class="hl">0.9682</span><br>
+<br>
+W₁ (benar) = 0.0968 / 0.9682 = <span class="hl2">0.1000</span><br>
+W₁ (salah) = 0.1614 / 0.9682 = <span class="hlr">0.1667</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Z₁</div><div class="metric-val">0.9682</div></div>
+    <div class="metric"><div class="metric-label">W₁ benar (×5)</div><div class="metric-val mv-green">0.1000</div></div>
+    <div class="metric"><div class="metric-label">W₁ salah (×3)</div><div class="metric-val mv-red">0.1667</div></div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>yᵢ</th><th>h₁</th><th>yᵢ×h₁</th><th>W₀(i)</th><th>exp faktor</th><th>W_raw</th><th>÷ Z₁</th><th>W₁(i)</th></tr></thead>
+      <tbody>
+        <tr class="row-right"><td>1</td><td>+1</td><td>+1</td><td>+1</td><td>0.1250</td><td>0.7746</td><td>0.0968</td><td>÷ 0.9682</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-wrong"><td>2</td><td>+1</td><td>−1</td><td>−1</td><td>0.1250</td><td>1.2910</td><td>0.1614</td><td>÷ 0.9682</td><td><strong style="color:var(--red)">0.1667</strong></td></tr>
+        <tr class="row-right"><td>3</td><td>+1</td><td>+1</td><td>+1</td><td>0.1250</td><td>0.7746</td><td>0.0968</td><td>÷ 0.9682</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-right"><td>4</td><td>+1</td><td>+1</td><td>+1</td><td>0.1250</td><td>0.7746</td><td>0.0968</td><td>÷ 0.9682</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-right"><td>5</td><td>−1</td><td>−1</td><td>+1</td><td>0.1250</td><td>0.7746</td><td>0.0968</td><td>÷ 0.9682</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-right"><td>6</td><td>−1</td><td>−1</td><td>+1</td><td>0.1250</td><td>0.7746</td><td>0.0968</td><td>÷ 0.9682</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-wrong"><td>7</td><td>−1</td><td>+1</td><td>−1</td><td>0.1250</td><td>1.2910</td><td>0.1614</td><td>÷ 0.9682</td><td><strong style="color:var(--red)">0.1667</strong></td></tr>
+        <tr class="row-wrong"><td>8</td><td>−1</td><td>+1</td><td>−1</td><td>0.1250</td><td>1.2910</td><td>0.1614</td><td>÷ 0.9682</td><td><strong style="color:var(--red)">0.1667</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="verify">Verifikasi: (5 × 0.1000) + (3 × 0.1667) = 0.5000 + 0.5001 ≈ 1.0000 ✓</div>
+  <div class="bars" style="margin-top:1rem">
+    <div class="bar-row"><div class="bar-label">No.1 (Lk/20)</div><div class="bar-track"><div class="bar-fill" style="width:50%;background:#378ADD"></div></div><div class="bar-val">0.1000</div></div>
+    <div class="bar-row"><div class="bar-label">No.2 (Pr/18)↑</div><div class="bar-track"><div class="bar-fill" style="width:83%;background:#E24B4A"></div></div><div class="bar-val" style="color:var(--red)">0.1667↑</div></div>
+    <div class="bar-row"><div class="bar-label">No.3 (Lk/21)</div><div class="bar-track"><div class="bar-fill" style="width:50%;background:#378ADD"></div></div><div class="bar-val">0.1000</div></div>
+    <div class="bar-row"><div class="bar-label">No.4 (Lk/16)</div><div class="bar-track"><div class="bar-fill" style="width:50%;background:#378ADD"></div></div><div class="bar-val">0.1000</div></div>
+    <div class="bar-row"><div class="bar-label">No.5 (Pr/18)</div><div class="bar-track"><div class="bar-fill" style="width:50%;background:#378ADD"></div></div><div class="bar-val">0.1000</div></div>
+    <div class="bar-row"><div class="bar-label">No.6 (Pr/12)</div><div class="bar-track"><div class="bar-fill" style="width:50%;background:#378ADD"></div></div><div class="bar-val">0.1000</div></div>
+    <div class="bar-row"><div class="bar-label">No.7 (Lk/16)↑</div><div class="bar-track"><div class="bar-fill" style="width:83%;background:#E24B4A"></div></div><div class="bar-val" style="color:var(--red)">0.1667↑</div></div>
+    <div class="bar-row"><div class="bar-label">No.8 (Lk/17)↑</div><div class="bar-track"><div class="bar-fill" style="width:83%;background:#E24B4A"></div></div><div class="bar-val" style="color:var(--red)">0.1667↑</div></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ===== ITERASI 2 ===== -->
+<div class="tag tag-iter">ITERASI 2</div>
+<div class="iter-head">
+  <span class="iter-badge">MODEL 2</span>
+  <span class="iter-title">if Usia ≥ 18 → +1, else −1</span>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">1</span>Prediksi h₂(xᵢ) — menggunakan W₁</div>
+  <div class="note">Rule: Usia ≥ 18 → +1 &nbsp;|&nbsp; Usia &lt; 18 → −1</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>Usia</th><th>Kondisi</th><th>yᵢ</th><th>h₂(xᵢ)</th><th>W₁(i)</th><th>Benar?</th></tr></thead>
+      <tbody>
+        <tr class="row-right"><td>1</td><td>20</td><td>20 ≥ 18</td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td>0.1000</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-right"><td>2</td><td>18</td><td>18 ≥ 18</td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td>0.1667</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-right"><td>3</td><td>21</td><td>21 ≥ 18</td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td>0.1000</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-wrong"><td>4</td><td>16</td><td>16 &lt; 18</td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-neg">−1</span></td><td>0.1000</td><td><span class="chip c-err">✗</span></td></tr>
+        <tr class="row-wrong"><td>5</td><td>18</td><td>18 ≥ 18</td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-pos">+1</span></td><td>0.1000</td><td><span class="chip c-err">✗</span></td></tr>
+        <tr class="row-right"><td>6</td><td>12</td><td>12 &lt; 18</td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-neg">−1</span></td><td>0.1000</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-right"><td>7</td><td>16</td><td>16 &lt; 18</td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-neg">−1</span></td><td>0.1667</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-right"><td>8</td><td>17</td><td>17 &lt; 18</td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-neg">−1</span></td><td>0.1667</td><td><span class="chip c-ok">✓</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">Data <strong>salah</strong>: No. 4 dan 5 &nbsp;(2 dari 8 data, tapi dengan bobot W₁ yang berbeda)</div>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">2</span>Hitung ε₂ — pakai W₁ bukan W₀!</div>
+  <div class="formula">
+ε₂ = <span class="hl">Σ</span> W₁(i) × <span class="hl2">𝟙[h₂(xᵢ) ≠ yᵢ]</span><br>
+<br>
+   = W₁(4) + W₁(5)<br>
+   = 0.1000 + 0.1000<br>
+   = <span class="hl2">0.2000</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">ε₂</div><div class="metric-val mv-red">0.2000</div></div>
+    <div class="metric"><div class="metric-label">data salah</div><div class="metric-val">2 / 8</div></div>
+    <div class="metric"><div class="metric-label">lebih baik dari M1</div><div class="metric-val mv-green">ε turun</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">3</span>Hitung α₂</div>
+  <div class="formula">
+α₂ = ½ × ln( (1 − 0.2000) / 0.2000 )<br>
+   = ½ × ln( 0.8000 / 0.2000 )<br>
+   = ½ × ln( <span class="hl2">4.0000</span> )<br>
+   = ½ × <span class="hl">1.3863</span><br>
+   = <span class="hl2">0.6931</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">α₂</div><div class="metric-val mv-blue">0.6931</div></div>
+    <div class="metric"><div class="metric-label">ln(4.0)</div><div class="metric-val">1.3863</div></div>
+    <div class="metric"><div class="metric-label">vs α₁ = 0.2554</div><div class="metric-val mv-green">↑ lebih kuat</div></div>
+  </div>
+  <div class="note">α₂ = 0.6931 jauh lebih besar dari α₁ = 0.2554 → Model 2 (Usia ≥ 18) mendapat <strong>suara lebih besar</strong> di prediksi akhir.</div>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">4</span>Update Bobot W₂(i)</div>
+  <div class="formula">
+exp faktor benar = exp(−0.6931) = <span class="hl2">0.5000</span><br>
+exp faktor salah = exp(+0.6931) = <span class="hlr">2.0000</span><br>
+<br>
+Contoh No.4 (salah, W₁=0.1000): 0.1000 × 2.0000 = <span class="hlr">0.2000</span><br>
+Contoh No.1 (benar, W₁=0.1000): 0.1000 × 0.5000 = <span class="hl2">0.0500</span><br>
+Contoh No.2 (benar, W₁=0.1667): 0.1667 × 0.5000 = <span class="hl2">0.0833</span><br>
+<br>
+Z₂ = Σ W_raw = <span class="hl">0.8000</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Z₂</div><div class="metric-val">0.8000</div></div>
+    <div class="metric"><div class="metric-label">W₂ No.4&5 (salah)</div><div class="metric-val mv-red">0.2500</div></div>
+    <div class="metric"><div class="metric-label">W₂ No.2 (benar)</div><div class="metric-val mv-green">0.1042</div></div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>yᵢ</th><th>h₂</th><th>yᵢ×h₂</th><th>W₁(i)</th><th>exp</th><th>W_raw</th><th>÷ Z₂</th><th>W₂(i)</th></tr></thead>
+      <tbody>
+        <tr class="row-right"><td>1</td><td>+1</td><td>+1</td><td>+1</td><td>0.1000</td><td>0.5000</td><td>0.0500</td><td>÷ 0.8000</td><td><strong>0.0625</strong></td></tr>
+        <tr class="row-right"><td>2</td><td>+1</td><td>+1</td><td>+1</td><td>0.1667</td><td>0.5000</td><td>0.0833</td><td>÷ 0.8000</td><td><strong>0.1042</strong></td></tr>
+        <tr class="row-right"><td>3</td><td>+1</td><td>+1</td><td>+1</td><td>0.1000</td><td>0.5000</td><td>0.0500</td><td>÷ 0.8000</td><td><strong>0.0625</strong></td></tr>
+        <tr class="row-wrong"><td>4</td><td>+1</td><td>−1</td><td>−1</td><td>0.1000</td><td>2.0000</td><td>0.2000</td><td>÷ 0.8000</td><td><strong style="color:var(--red)">0.2500</strong></td></tr>
+        <tr class="row-wrong"><td>5</td><td>−1</td><td>+1</td><td>−1</td><td>0.1000</td><td>2.0000</td><td>0.2000</td><td>÷ 0.8000</td><td><strong style="color:var(--red)">0.2500</strong></td></tr>
+        <tr class="row-right"><td>6</td><td>−1</td><td>−1</td><td>+1</td><td>0.1000</td><td>0.5000</td><td>0.0500</td><td>÷ 0.8000</td><td><strong>0.0625</strong></td></tr>
+        <tr class="row-right"><td>7</td><td>−1</td><td>−1</td><td>+1</td><td>0.1667</td><td>0.5000</td><td>0.0833</td><td>÷ 0.8000</td><td><strong>0.1042</strong></td></tr>
+        <tr class="row-right"><td>8</td><td>−1</td><td>−1</td><td>+1</td><td>0.1667</td><td>0.5000</td><td>0.0833</td><td>÷ 0.8000</td><td><strong>0.1042</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="verify">Verifikasi: 0.0625+0.1042+0.0625+0.2500+0.2500+0.0625+0.1042+0.1042 = 1.0001 ≈ 1.0 ✓</div>
+</div>
+
+<hr class="divider">
+
+<!-- ===== ITERASI 3 ===== -->
+<div class="tag tag-iter">ITERASI 3</div>
+<div class="iter-head">
+  <span class="iter-badge">MODEL 3</span>
+  <span class="iter-title">if Tempat Tinggal = Kota → +1, else −1</span>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">1</span>Prediksi h₃(xᵢ) — menggunakan W₂</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>Tempat Tinggal</th><th>yᵢ</th><th>h₃(xᵢ)</th><th>W₂(i)</th><th>Benar?</th></tr></thead>
+      <tbody>
+        <tr class="row-right"><td>1</td><td><span class="chip c-kota">Kota</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td>0.0625</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-right"><td>2</td><td><span class="chip c-kota">Kota</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td>0.1042</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-wrong"><td>3</td><td><span class="chip c-desa">Desa</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-neg">−1</span></td><td>0.0625</td><td><span class="chip c-err">✗</span></td></tr>
+        <tr class="row-right"><td>4</td><td><span class="chip c-kota">Kota</span></td><td><span class="chip c-pos">+1</span></td><td><span class="chip c-pos">+1</span></td><td>0.2500</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-wrong"><td>5</td><td><span class="chip c-kota">Kota</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-pos">+1</span></td><td>0.2500</td><td><span class="chip c-err">✗</span></td></tr>
+        <tr class="row-wrong"><td>6</td><td><span class="chip c-kota">Kota</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-pos">+1</span></td><td>0.0625</td><td><span class="chip c-err">✗</span></td></tr>
+        <tr class="row-right"><td>7</td><td><span class="chip c-desa">Desa</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-neg">−1</span></td><td>0.1042</td><td><span class="chip c-ok">✓</span></td></tr>
+        <tr class="row-wrong"><td>8</td><td><span class="chip c-kota">Kota</span></td><td><span class="chip c-neg">−1</span></td><td><span class="chip c-pos">+1</span></td><td>0.1042</td><td><span class="chip c-err">✗</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">Data <strong>salah</strong>: No. 3, 5, 6, 8 — total bobot error sangat besar karena No.5 punya W₂ = 0.2500</div>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">2–3</span>Hitung ε₃ dan α₃</div>
+  <div class="formula">
+ε₃ = W₂(3) + W₂(5) + W₂(6) + W₂(8)<br>
+   = 0.0625 + 0.2500 + 0.0625 + 0.1042<br>
+   = <span class="hl2">0.4792</span><br>
+<br>
+α₃ = ½ × ln( (1 − 0.4792) / 0.4792 )<br>
+   = ½ × ln( 0.5208 / 0.4792 )<br>
+   = ½ × ln( <span class="hl2">1.0870</span> )<br>
+   = ½ × 0.0834<br>
+   = <span class="hl2">0.0417</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">ε₃</div><div class="metric-val mv-red">0.4792</div></div>
+    <div class="metric"><div class="metric-label">α₃</div><div class="metric-val mv-blue">0.0417</div></div>
+    <div class="metric"><div class="metric-label">mendekati acak</div><div class="metric-val" style="color:var(--muted)">ε ≈ 0.5</div></div>
+  </div>
+  <div class="note">ε₃ = 0.4792 sangat mendekati 0.5 → artinya Model 3 hampir seperti menebak secara acak. Oleh karena itu <strong>α₃ = 0.0417 sangat kecil</strong> dan hampir tidak mempengaruhi prediksi akhir.</div>
+</div>
+
+<div class="card">
+  <div class="card-label"><span class="step">4</span>Update Bobot W₃(i) — final</div>
+  <div class="formula">
+exp faktor benar = exp(−0.0417) = <span class="hl2">0.9592</span><br>
+exp faktor salah = exp(+0.0417) = <span class="hlr">1.0425</span><br>
+Z₃ = <span class="hl">0.9991</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>yᵢ</th><th>h₃</th><th>W₂(i)</th><th>exp</th><th>W_raw</th><th>W₃(i)</th></tr></thead>
+      <tbody>
+        <tr class="row-right"><td>1</td><td>+1</td><td>+1</td><td>0.0625</td><td>0.9592</td><td>0.0599</td><td><strong>0.0600</strong></td></tr>
+        <tr class="row-right"><td>2</td><td>+1</td><td>+1</td><td>0.1042</td><td>0.9592</td><td>0.0999</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-wrong"><td>3</td><td>+1</td><td>−1</td><td>0.0625</td><td>1.0425</td><td>0.0652</td><td><strong style="color:var(--red)">0.0652</strong></td></tr>
+        <tr class="row-right"><td>4</td><td>+1</td><td>+1</td><td>0.2500</td><td>0.9592</td><td>0.2398</td><td><strong>0.2400</strong></td></tr>
+        <tr class="row-wrong"><td>5</td><td>−1</td><td>+1</td><td>0.2500</td><td>1.0425</td><td>0.2606</td><td><strong style="color:var(--red)">0.2609</strong></td></tr>
+        <tr class="row-wrong"><td>6</td><td>−1</td><td>+1</td><td>0.0625</td><td>1.0425</td><td>0.0652</td><td><strong style="color:var(--red)">0.0652</strong></td></tr>
+        <tr class="row-right"><td>7</td><td>−1</td><td>−1</td><td>0.1042</td><td>0.9592</td><td>0.0999</td><td><strong>0.1000</strong></td></tr>
+        <tr class="row-wrong"><td>8</td><td>−1</td><td>+1</td><td>0.1042</td><td>1.0425</td><td>0.1086</td><td><strong style="color:var(--red)">0.1087</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ===== PREDIKSI AKHIR ===== -->
+<div class="tag tag-final">PREDIKSI AKHIR</div>
+<div class="iter-head">
+  <span class="iter-badge" style="background:var(--green)">ENSEMBLE</span>
+  <span class="iter-title">H(x) = sign(α₁h₁ + α₂h₂ + α₃h₃)</span>
+</div>
+
+<div class="card">
+  <div class="card-label">Ringkasan Bobot 3 Model</div>
+  <div class="formula">
+α₁ = <span class="hl">0.2554</span>  ← Model 1 (Jenis Kelamin)   — suara kecil<br>
+α₂ = <span class="hl2">0.6931</span>  ← Model 2 (Usia ≥ 18)       — <strong>suara dominan</strong><br>
+α₃ = <span class="hl3">0.0417</span>  ← Model 3 (Tempat Tinggal)  — hampir tidak berpengaruh<br>
+<br>
+H(xᵢ) = sign( <span class="hl">0.2554</span>·h₁ + <span class="hl2">0.6931</span>·h₂ + <span class="hl3">0.0417</span>·h₃ )
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">α₁ Model 1</div><div class="metric-val" style="color:var(--amber)">0.2554</div></div>
+    <div class="metric"><div class="metric-label">α₂ Model 2</div><div class="metric-val mv-green">0.6931</div></div>
+    <div class="metric"><div class="metric-label">α₃ Model 3</div><div class="metric-val mv-blue">0.0417</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-label">Perhitungan Skor per Data</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>No</th><th>yᵢ asli</th><th>α₁·h₁</th><th>α₂·h₂</th><th>α₃·h₃</th><th>Σ skor</th><th>ŷ = sign(Σ)</th><th>Hasil</th></tr></thead>
+      <tbody>
+        <tr class="row-right">
+          <td>1</td><td><span class="chip c-ya">+1</span></td>
+          <td>+0.2554</td><td>+0.6931</td><td>+0.0417</td>
+          <td><strong>+0.9903</strong></td>
+          <td><span class="chip c-ya">+1 (Ya)</span></td><td><span class="chip c-ok">✓</span></td>
+        </tr>
+        <tr class="row-right">
+          <td>2</td><td><span class="chip c-ya">+1</span></td>
+          <td>−0.2554</td><td>+0.6931</td><td>+0.0417</td>
+          <td><strong>+0.4794</strong></td>
+          <td><span class="chip c-ya">+1 (Ya)</span></td><td><span class="chip c-ok">✓</span></td>
+        </tr>
+        <tr class="row-right">
+          <td>3</td><td><span class="chip c-ya">+1</span></td>
+          <td>+0.2554</td><td>+0.6931</td><td>−0.0417</td>
+          <td><strong>+0.9069</strong></td>
+          <td><span class="chip c-ya">+1 (Ya)</span></td><td><span class="chip c-ok">✓</span></td>
+        </tr>
+        <tr class="row-wrong">
+          <td>4</td><td><span class="chip c-ya">+1</span></td>
+          <td>+0.2554</td><td>−0.6931</td><td>+0.0417</td>
+          <td><strong style="color:var(--red)">−0.3960</strong></td>
+          <td><span class="chip c-tdk">−1 (Tidak)</span></td><td><span class="chip c-err">✗</span></td>
+        </tr>
+        <tr class="row-wrong">
+          <td>5</td><td><span class="chip c-tdk">−1</span></td>
+          <td>−0.2554</td><td>+0.6931</td><td>+0.0417</td>
+          <td><strong style="color:var(--red)">+0.4794</strong></td>
+          <td><span class="chip c-ya">+1 (Ya)</span></td><td><span class="chip c-err">✗</span></td>
+        </tr>
+        <tr class="row-right">
+          <td>6</td><td><span class="chip c-tdk">−1</span></td>
+          <td>−0.2554</td><td>−0.6931</td><td>+0.0417</td>
+          <td><strong>−0.9069</strong></td>
+          <td><span class="chip c-tdk">−1 (Tidak)</span></td><td><span class="chip c-ok">✓</span></td>
+        </tr>
+        <tr class="row-right">
+          <td>7</td><td><span class="chip c-tdk">−1</span></td>
+          <td>+0.2554</td><td>−0.6931</td><td>−0.0417</td>
+          <td><strong>−0.4794</strong></td>
+          <td><span class="chip c-tdk">−1 (Tidak)</span></td><td><span class="chip c-ok">✓</span></td>
+        </tr>
+        <tr class="row-right">
+          <td>8</td><td><span class="chip c-tdk">−1</span></td>
+          <td>+0.2554</td><td>−0.6931</td><td>+0.0417</td>
+          <td><strong>−0.3960</strong></td>
+          <td><span class="chip c-tdk">−1 (Tidak)</span></td><td><span class="chip c-ok">✓</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Wrong analysis -->
+<div class="card">
+  <div class="card-label">Analisis Data yang Salah Diprediksi</div>
+  <div class="wrong-box">
+    <div class="wrong-title">No. 4 — Laki-Laki / Kota / Usia 16 / Asli: Ya (+1) → Prediksi: Tidak (−1)</div>
+    <div class="wrong-body">
+      α₁·h₁ = +0.2554 (Laki-Laki → h₁=+1 ✓)<br>
+      α₂·h₂ = −0.6931 (Usia 16 &lt; 18 → h₂=−1, tapi aslinya +1 ✗)<br>
+      α₃·h₃ = +0.0417 (Kota → h₃=+1 ✓)<br>
+      ─────────────────────────────────<br>
+      Σ = −0.3960 → sign = −1<br>
+      <br>
+      Penyebab: α₂ (usia) sangat dominan. Karena usia 16 &lt; 18,<br>
+      skor α₂ = −0.6931 mengalahkan skor positif dari α₁ dan α₃.
+    </div>
+  </div>
+  <div class="wrong-box">
+    <div class="wrong-title">No. 5 — Perempuan / Kota / Usia 18 / Asli: Tidak (−1) → Prediksi: Ya (+1)</div>
+    <div class="wrong-body">
+      α₁·h₁ = −0.2554 (Perempuan → h₁=−1 ✓)<br>
+      α₂·h₂ = +0.6931 (Usia 18 ≥ 18 → h₂=+1, tapi aslinya −1 ✗)<br>
+      α₃·h₃ = +0.0417 (Kota → h₃=+1, tapi aslinya −1 ✗)<br>
+      ─────────────────────────────────<br>
+      Σ = +0.4794 → sign = +1<br>
+      <br>
+      Penyebab: α₂ (usia) mendominasi. Usia 18 ≥ threshold,<br>
+      skor +0.6931 mengalahkan skor negatif dari α₁.
+    </div>
+  </div>
+</div>
+
+<!-- Final banner -->
+<div class="banner">
+  <div class="banner-score">6 / 8</div>
+  <div class="banner-sub">data diprediksi benar oleh AdaBoost (akurasi 75%)</div>
+  <div class="banner-grid">
+    <div class="bg-item"><div class="bg-val">75%</div><div class="bg-label">akurasi akhir</div></div>
+    <div class="bg-item"><div class="bg-val">α₂ dominan</div><div class="bg-label">Usia ≥ 18 paling berpengaruh</div></div>
+    <div class="bg-item"><div class="bg-val">3 model</div><div class="bg-label">weak learner digabung</div></div>
+  </div>
+  <div style="margin-top:1.5rem;font-size:13px;color:#8C8480;font-family:var(--mono);line-height:2">
+    ε₁=0.3750 &nbsp;|&nbsp; ε₂=0.2000 &nbsp;|&nbsp; ε₃=0.4792<br>
+    α₁=0.2554 &nbsp;|&nbsp; α₂=0.6931 &nbsp;|&nbsp; α₃=0.0417<br>
+    Z₁=0.9682 &nbsp;|&nbsp; Z₂=0.8000 &nbsp;|&nbsp; Z₃=0.9991
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,245 @@
+
+<h2 class="sr-only">AdaBoost Playground — dataset Jenis Kelamin, Tempat Tinggal, Usia dengan target Tertarik</h2>
+<style>
+*{box-sizing:border-box}
+.wrap{padding:1rem 0}
+.sec{font-size:12px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px}
+.card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1rem;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--color-text-secondary);font-weight:500;padding:6px 8px;border-bottom:.5px solid var(--color-border-tertiary);text-align:center;white-space:nowrap}
+td{padding:6px 8px;text-align:center;color:var(--color-text-primary);border-bottom:.5px solid var(--color-border-tertiary)}
+tr:last-child td{border-bottom:none}
+td:first-child,th:first-child{text-align:left}
+.b{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:500}
+.b-ya{background:#EAF3DE;color:#27500A}
+.b-tdk{background:#FAECE7;color:#712B13}
+.b-pos{background:#E6F1FB;color:#0C447C}
+.b-neg{background:#FAEEDA;color:#633806}
+.b-ok{background:#EAF3DE;color:#27500A}
+.b-err{background:#FCEBEB;color:#791F1F}
+.b-lk{background:#EEEDFE;color:#3C3489}
+.b-pr{background:#FBEAF0;color:#72243E}
+.b-kota{background:#E6F1FB;color:#0C447C}
+.b-desa{background:#F1EFE8;color:#444441}
+.step-btn{padding:7px 16px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-primary);cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.step-btn:hover{background:var(--color-background-secondary)}
+.step-btn.active{background:#378ADD;color:#fff;border-color:#185FA5}
+.fbox{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;color:var(--color-text-secondary);margin:8px 0;font-family:var(--font-mono);line-height:1.8}
+.hl{color:#378ADD;font-weight:500}
+.mc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.ml{font-size:11px;color:var(--color-text-secondary);margin-bottom:2px}
+.mv{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.pbw{background:var(--color-background-secondary);border-radius:4px;height:6px;flex:1;overflow:hidden}
+.pb{height:100%;border-radius:4px;transition:width .4s}
+@media(max-width:520px){.g3{grid-template-columns:1fr 1fr}}
+</style>
+<div class="wrap" id="root"></div>
+<script>
+const data=[
+  {no:1,jk:'Laki-Laki',tt:'Kota',usia:20,label:1},
+  {no:2,jk:'Perempuan',tt:'Kota',usia:18,label:1},
+  {no:3,jk:'Laki-Laki',tt:'Desa',usia:21,label:1},
+  {no:4,jk:'Laki-Laki',tt:'Kota',usia:16,label:1},
+  {no:5,jk:'Perempuan',tt:'Kota',usia:18,label:-1},
+  {no:6,jk:'Perempuan',tt:'Kota',usia:12,label:-1},
+  {no:7,jk:'Laki-Laki',tt:'Desa',usia:16,label:-1},
+  {no:8,jk:'Laki-Laki',tt:'Kota',usia:17,label:-1},
+];
+const n=data.length;
+
+const models=[
+  {
+    id:1,
+    rule:'if Jenis Kelamin = Laki-Laki → +1, else −1',
+    short:'Jenis Kelamin = Laki-Laki',
+    color:'#185FA5',
+    predict:d=>d.jk==='Laki-Laki'?1:-1
+  },
+  {
+    id:2,
+    rule:'if Usia ≥ 18 → +1, else −1',
+    short:'Usia ≥ 18',
+    color:'#3B6D11',
+    predict:d=>d.usia>=18?1:-1
+  },
+  {
+    id:3,
+    rule:'if Tempat Tinggal = Kota → +1, else −1',
+    short:'Tempat Tinggal = Kota',
+    color:'#854F0B',
+    predict:d=>d.tt==='Kota'?1:-1
+  }
+];
+
+function computeIter(W,mIdx){
+  const m=models[mIdx];
+  const preds=data.map(d=>m.predict(d));
+  const wrong=preds.map((p,i)=>p!==data[i].label?1:0);
+  const eps=wrong.reduce((s,w,i)=>s+W[i]*w,0);
+  const alpha=0.5*Math.log((1-eps)/Math.max(eps,1e-9));
+  const rawW=W.map((w,i)=>w*Math.exp(-alpha*data[i].label*preds[i]));
+  const Z=rawW.reduce((s,v)=>s+v,0);
+  const newW=rawW.map(v=>v/Z);
+  return{preds,wrong,eps,alpha,newW,Z,rawW};
+}
+
+let iters=[];
+function runAll(){
+  let W=Array(n).fill(1/n);
+  iters=[];
+  for(let m=0;m<3;m++){
+    const res=computeIter(W,m);
+    iters.push({W:[...W],...res});
+    W=res.newW;
+  }
+}
+runAll();
+
+let step=0;
+function f(v,d=4){return typeof v==='number'?v.toFixed(d):v;}
+
+function badgeJK(jk){return `<span class="b ${jk==='Laki-Laki'?'b-lk':'b-pr'}">${jk==='Laki-Laki'?'Laki-Laki':'Perempuan'}</span>`;}
+function badgeTT(tt){return `<span class="b ${tt==='Kota'?'b-kota':'b-desa'}">${tt}</span>`;}
+function badgeLabel(l){return `<span class="b ${l===1?'b-ya':'b-tdk'}">${l===1?'Ya':'Tidak'}</span>`;}
+function badgePred(p){return `<span class="b ${p===1?'b-pos':'b-neg'}">${p===1?'+1':'−1'}</span>`;}
+
+function render(){
+  const root=document.getElementById('root');
+  let h='';
+
+  h+=`<div style="display:flex;gap:8px;margin-bottom:1.2rem;flex-wrap:wrap">`;
+  ['Dataset','Model 1','Model 2','Model 3','Prediksi Akhir'].forEach((l,i)=>{
+    h+=`<button class="step-btn ${step===i?'active':''}" onclick="go(${i})">${l}</button>`;
+  });
+  h+=`</div>`;
+
+  if(step===0){
+    h+=`<p class="sec">Dataset — 8 data point</p>`;
+    h+=`<div class="card"><table>`;
+    h+=`<thead><tr><th>No</th><th>Jenis Kelamin</th><th>Tempat Tinggal</th><th>Usia</th><th>Tertarik (yᵢ)</th><th>W₀(i)</th></tr></thead><tbody>`;
+    data.forEach((d,i)=>{
+      h+=`<tr>
+        <td style="color:var(--color-text-secondary)">${d.no}</td>
+        <td>${badgeJK(d.jk)}</td>
+        <td>${badgeTT(d.tt)}</td>
+        <td>${d.usia}</td>
+        <td>${badgeLabel(d.label)}</td>
+        <td>${f(1/n)}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+    h+=`<div class="fbox">Label: <span class="hl">Ya → +1</span>, <span style="color:#854F0B;font-weight:500">Tidak → −1</span><br>Bobot awal: W₀(i) = 1/8 = <span class="hl">0.1250</span> untuk semua data<br>Total bobot: Σ W₀(i) = <span class="hl">1.0000</span></div>`;
+    h+=`<div class="g3" style="margin-top:1rem">`;
+    h+=`<div class="mc"><div class="ml">total data</div><div class="mv">8</div></div>`;
+    h+=`<div class="mc"><div class="ml">kelas Ya (+1)</div><div class="mv" style="color:#27500A">4</div></div>`;
+    h+=`<div class="mc"><div class="ml">kelas Tidak (−1)</div><div class="mv" style="color:#712B13">4</div></div>`;
+    h+=`</div>`;
+    h+=`<div style="display:flex;justify-content:flex-end;margin-top:1rem"><button class="step-btn" onclick="go(1)">Lanjut ke Model 1 →</button></div>`;
+
+  } else if(step>=1&&step<=3){
+    const idx=step-1;
+    const it=iters[idx];
+    const m=models[idx];
+    h+=`<p class="sec">Iterasi ${idx+1} — ${m.rule}</p>`;
+    h+=`<div class="g3" style="margin-bottom:1rem">`;
+    h+=`<div class="mc"><div class="ml">error (ε${idx+1})</div><div class="mv" style="color:#A32D2D">${f(it.eps)}</div></div>`;
+    h+=`<div class="mc"><div class="ml">alpha (α${idx+1})</div><div class="mv" style="color:${m.color}">${f(it.alpha)}</div></div>`;
+    h+=`<div class="mc"><div class="ml">normalisasi (Z${idx+1})</div><div class="mv">${f(it.Z)}</div></div>`;
+    h+=`</div>`;
+    h+=`<div class="fbox">`;
+    h+=`ε${idx+1} = Σ W(i) × 𝟙[h(xᵢ) ≠ yᵢ] = <span class="hl">${f(it.eps)}</span><br>`;
+    h+=`α${idx+1} = ½ × ln((1−ε)/ε) = ½ × ln(${f(1-it.eps,4)} / ${f(it.eps,4)}) = <span class="hl">${f(it.alpha)}</span><br>`;
+    h+=`W_new(i) = W(i) × exp(−α × yᵢ × h(xᵢ)) / Z`;
+    h+=`</div>`;
+
+    h+=`<div class="card"><table style="min-width:540px">`;
+    h+=`<thead><tr><th>No</th><th>JK</th><th>Kota/Desa</th><th>Usia</th><th>yᵢ</th><th>h${idx+1}</th><th>benar?</th><th>W${idx}(i)</th><th>W_raw</th><th>W${idx+1}(i)</th></tr></thead><tbody>`;
+    data.forEach((d,i)=>{
+      const wrong=it.wrong[i]===1;
+      h+=`<tr style="${wrong?'background:rgba(228,75,74,0.06)':''}">
+        <td style="color:var(--color-text-secondary)">${d.no}</td>
+        <td>${badgeJK(d.jk)}</td>
+        <td>${badgeTT(d.tt)}</td>
+        <td>${d.usia}</td>
+        <td>${badgeLabel(d.label)}</td>
+        <td>${badgePred(it.preds[i])}</td>
+        <td><span class="b ${wrong?'b-err':'b-ok'}">${wrong?'✗ salah':'✓ benar'}</span></td>
+        <td>${f(it.W[i])}</td>
+        <td>${f(it.rawW[i])}</td>
+        <td><strong>${f(it.newW[i])}</strong></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+
+    h+=`<p class="sec" style="margin-top:1rem">perubahan bobot</p>`;
+    h+=`<div style="display:flex;flex-direction:column;gap:7px">`;
+    data.forEach((d,i)=>{
+      const wrong=it.wrong[i]===1;
+      const pct=Math.round(it.newW[i]*600);
+      h+=`<div style="display:flex;align-items:center;gap:8px;font-size:12px">`;
+      h+=`<span style="min-width:56px;color:var(--color-text-secondary)">No.${d.no} (${d.usia}th)</span>`;
+      h+=`<div class="pbw" style="flex:1"><div class="pb" style="width:${Math.min(pct,100)}%;background:${wrong?'#E24B4A':'#378ADD'}"></div></div>`;
+      h+=`<span style="min-width:66px;text-align:right;color:${wrong?'#A32D2D':'var(--color-text-primary)'};">${f(it.newW[i])} ${wrong?'↑':''}</span>`;
+      h+=`</div>`;
+    });
+    h+=`</div>`;
+    h+=`<div style="display:flex;gap:8px;margin-top:1rem;justify-content:space-between;flex-wrap:wrap">`;
+    h+=`<button class="step-btn" onclick="go(${step-1})">← Kembali</button>`;
+    if(step<4) h+=`<button class="step-btn" onclick="go(${step+1})">Lanjut →</button>`;
+    h+=`</div>`;
+
+  } else if(step===4){
+    const a=iters.map(it=>it.alpha);
+    const preds=iters.map(it=>it.preds);
+    h+=`<p class="sec">Prediksi akhir — H(x) = sign(α₁h₁ + α₂h₂ + α₃h₃)</p>`;
+    h+=`<div class="fbox">`;
+    h+=`α₁ = <span class="hl">${f(a[0])}</span> (Jenis Kelamin)<br>`;
+    h+=`α₂ = <span style="color:#3B6D11;font-weight:500">${f(a[1])}</span> (Usia ≥ 18)<br>`;
+    h+=`α₃ = <span style="color:#854F0B;font-weight:500">${f(a[2])}</span> (Tempat Tinggal)<br>`;
+    h+=`H(x) = sign(α₁·h₁ + α₂·h₂ + α₃·h₃)`;
+    h+=`</div>`;
+
+    h+=`<div class="card"><table style="min-width:580px">`;
+    h+=`<thead><tr><th>No</th><th>JK</th><th>Usia</th><th>yᵢ</th><th>α₁h₁</th><th>α₂h₂</th><th>α₃h₃</th><th>Σ</th><th>ŷ</th><th>benar?</th></tr></thead><tbody>`;
+    let correct=0;
+    data.forEach((d,i)=>{
+      const v1=a[0]*preds[0][i];
+      const v2=a[1]*preds[1][i];
+      const v3=a[2]*preds[2][i];
+      const sum=v1+v2+v3;
+      const yp=sum>=0?1:-1;
+      const ok=yp===d.label;
+      if(ok)correct++;
+      h+=`<tr style="${ok?'':'background:rgba(228,75,74,0.06)'}">
+        <td style="color:var(--color-text-secondary)">${d.no}</td>
+        <td>${badgeJK(d.jk)}</td>
+        <td>${d.usia}</td>
+        <td>${badgeLabel(d.label)}</td>
+        <td>${f(v1,3)}</td>
+        <td>${f(v2,3)}</td>
+        <td>${f(v3,3)}</td>
+        <td><strong>${f(sum,3)}</strong></td>
+        <td>${badgeLabel(yp)}</td>
+        <td><span class="b ${ok?'b-ok':'b-err'}">${ok?'✓':'✗'}</span></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+    h+=`<div class="g3" style="margin-top:1rem">`;
+    h+=`<div class="mc"><div class="ml">prediksi benar</div><div class="mv" style="color:#27500A">${correct}/${n}</div></div>`;
+    h+=`<div class="mc"><div class="ml">akurasi</div><div class="mv">${(correct/n*100).toFixed(0)}%</div></div>`;
+    h+=`<div class="mc"><div class="ml">weak learner</div><div class="mv">3 model</div></div>`;
+    h+=`</div>`;
+    h+=`<div style="display:flex;gap:8px;margin-top:1rem;justify-content:space-between;flex-wrap:wrap">`;
+    h+=`<button class="step-btn" onclick="go(3)">← Kembali</button>`;
+    h+=`<button class="step-btn" onclick="sendPrompt('Jelaskan kenapa hasil akurasi AdaBoost pada dataset Tertarik ini bisa seperti ini?')">Analisis hasil ↗</button>`;
+    h+=`</div>`;
+  }
+
+  root.innerHTML=h;
+}
+
+function go(s){step=s;render();}
+render();
+</script>

@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playground: How Stacking Works?</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --ink: #17212b;
+      --muted: #6b7280;
+      --line: #d7dde8;
+      --green: #12b76a;
+      --green-soft: #e8fff3;
+      --blue: #2f80ed;
+      --blue-soft: #eaf3ff;
+      --orange: #f59e0b;
+      --orange-soft: #fff5dc;
+      --purple: #7c3aed;
+      --purple-soft: #f1eafe;
+      --red: #ef4444;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ffffff 0, var(--bg) 38%, #eef3fa 100%);
+      color: var(--ink);
+    }
+
+    .page {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .title-card,
+    .control-card,
+    .panel,
+    .step-card {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(215,221,232,0.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .title-card {
+      padding: 28px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .title-card::after {
+      content: "STACK";
+      position: absolute;
+      right: 16px;
+      bottom: -28px;
+      font-size: 120px;
+      font-weight: 900;
+      letter-spacing: -8px;
+      color: rgba(23,33,43,0.04);
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(36px, 5vw, 74px);
+      line-height: 0.95;
+      letter-spacing: -2px;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.55;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #f2f5fa;
+      border: 1px solid #e4e9f2;
+      color: #243244;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .control-card {
+      padding: 22px;
+    }
+
+    .control-card h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: #18212f;
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 8px 18px rgba(24, 33, 47, 0.16);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); opacity: 0.85; }
+    button.secondary { background: #eef2f7; color: #1f2937; box-shadow: none; border: 1px solid #d7dde8; }
+    button.green { background: var(--green); }
+
+    .slider-wrap {
+      padding: 14px;
+      background: #f7f9fc;
+      border: 1px solid #e4e9f2;
+      border-radius: 16px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+    }
+
+    .model-toggle {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    label.model-check {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #d7dde8;
+      border-radius: 14px;
+      background: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step-card {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+    }
+
+    .step-card:hover { transform: translateY(-1px); }
+    .step-card.active {
+      background: linear-gradient(135deg, #ffffff, var(--green-soft));
+      border-color: rgba(18, 183, 106, 0.45);
+    }
+
+    .step-num {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 20px;
+      background: #edf1f7;
+      color: #202a38;
+    }
+
+    .step-card.active .step-num {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .step-title {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .step-desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .panel {
+      padding: 22px;
+      min-height: 720px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      margin: 0 0 6px;
+      font-size: 26px;
+      letter-spacing: -0.6px;
+    }
+
+    .panel-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 780px;
+    }
+
+    .pill {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      background: #eef2f7;
+      border: 1px solid #d7dde8;
+      color: #233042;
+    }
+
+    .diagram {
+      background: #fbfcff;
+      border: 1px solid #e2e8f0;
+      border-radius: 22px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .data-bar {
+      height: 54px;
+      border: 3px solid #141414;
+      border-radius: 999px;
+      display: flex;
+      overflow: hidden;
+      background: white;
+      box-shadow: inset 0 -6px 0 rgba(0,0,0,0.025);
+    }
+
+    .segment {
+      display: grid;
+      place-items: center;
+      border-right: 2px solid rgba(0,0,0,0.16);
+      font-weight: 900;
+      font-size: 13px;
+      transition: all 0.25s ease;
+      min-width: 32px;
+      position: relative;
+    }
+
+    .segment:last-child { border-right: 0; }
+    .seg-original { background: var(--green-soft); color: #087a43; }
+    .seg-train { background: var(--blue-soft); color: #1b5dbf; }
+    .seg-valid { background: var(--orange-soft); color: #9a5b00; }
+    .seg-test { background: var(--purple-soft); color: #5521aa; }
+    .segment.dim { opacity: 0.28; filter: grayscale(0.3); }
+    .segment.highlight { outline: 4px solid rgba(245, 158, 11, 0.45); z-index: 2; transform: scaleY(1.12); }
+
+    .bar-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: 1fr 70px 1fr 70px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-top: 18px;
+    }
+
+    .flow-box {
+      min-height: 104px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 2px solid #111827;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .flow-box.green-box { color: var(--green); border-color: #111; }
+    .flow-box.blue-box { color: var(--blue); }
+    .flow-box.orange-box { color: var(--orange); }
+    .flow-box.purple-box { color: var(--purple); }
+
+    .arrow {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .folds {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .fold-row {
+      display: grid;
+      grid-template-columns: 94px 1fr 160px;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #dbe2ed;
+      border-radius: 16px;
+    }
+
+    .fold-name {
+      font-weight: 900;
+    }
+
+    .mini-bar {
+      height: 34px;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid #cfd7e5;
+    }
+
+    .fold-action {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .model-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid #dce4ef;
+      min-height: 176px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .model-name {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-weight: 950;
+      font-size: 16px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #334155;
+      white-space: nowrap;
+      font-weight: 900;
+    }
+
+    .formula {
+      padding: 10px;
+      border-radius: 14px;
+      background: #f7f9fc;
+      border: 1px dashed #cfd7e5;
+      color: #334155;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tiny {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .table-wrap {
+      margin-top: 18px;
+      border: 1px solid #dce4ef;
+      border-radius: 18px;
+      overflow: auto;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #edf1f7;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f7f9fc;
+      color: #334155;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    td.left, th.left { text-align: left; }
+
+    .actual-yes, .pred-yes { color: #087a43; font-weight: 900; }
+    .actual-no, .pred-no { color: #b42318; font-weight: 900; }
+    .fold-chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef2f7;
+      font-weight: 900;
+      display: inline-block;
+    }
+
+    .highlight-cell {
+      background: var(--green-soft);
+      font-weight: 950;
+    }
+
+    .explain-box {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 14px;
+      padding: 16px;
+      margin-top: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(18, 183, 106, 0.25);
+      background: linear-gradient(135deg, #ffffff, var(--green-soft));
+    }
+
+    .explain-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--green);
+      color: #fff;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .explain-box h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .explain-box p {
+      margin: 0;
+      color: #334155;
+      line-height: 1.55;
+    }
+
+    .meta-visual {
+      display: grid;
+      grid-template-columns: 1fr 80px 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-top: 18px;
+    }
+
+    .stack-feature {
+      padding: 16px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid #dce4ef;
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 84px;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid #eef2f7;
+      font-weight: 800;
+    }
+
+    .feature-row:last-child { border-bottom: 0; }
+
+    .prob {
+      height: 12px;
+      border-radius: 999px;
+      background: #edf2f7;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .prob span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .final-prediction {
+      padding: 20px;
+      border-radius: 20px;
+      background: #151f2e;
+      color: #fff;
+      min-height: 176px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      box-shadow: 0 18px 36px rgba(21,31,46,0.2);
+    }
+
+    .final-prediction .big {
+      font-size: 54px;
+      line-height: 1;
+      font-weight: 950;
+      margin-bottom: 8px;
+    }
+
+    .final-prediction .small {
+      color: rgba(255,255,255,0.78);
+      line-height: 1.4;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .dot.train { background: var(--blue-soft); border: 1px solid var(--blue); }
+    .dot.valid { background: var(--orange-soft); border: 1px solid var(--orange); }
+    .dot.test { background: var(--purple-soft); border: 1px solid var(--purple); }
+    .dot.meta { background: var(--green-soft); border: 1px solid var(--green); }
+
+    .warning {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1100px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+      .panel { min-height: auto; }
+    }
+
+    @media (max-width: 760px) {
+      .page { padding: 16px; }
+      .cards, .meta-visual, .flow-grid { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      .fold-row { grid-template-columns: 1fr; }
+      .model-toggle { grid-template-columns: 1fr; }
+      h1 { font-size: 42px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="title-card">
+        <h1>How Stacking Works?</h1>
+        <p class="subtitle">
+          Playground ini menjelaskan <strong>stacking ensemble</strong>: beberapa base model membuat prediksi,
+          lalu prediksi tersebut dipakai sebagai fitur baru untuk melatih <strong>second-level model</strong> atau meta model.
+        </p>
+        <div class="badge-row">
+          <span class="badge">1. K-Fold</span>
+          <span class="badge">2. Out-of-Fold Prediction</span>
+          <span class="badge">3. Base Models</span>
+          <span class="badge">4. Meta Model</span>
+        </div>
+      </div>
+
+      <aside class="control-card">
+        <h2>Kontrol Playground</h2>
+        <div class="controls">
+          <div class="btn-row">
+            <button id="prevBtn" class="secondary">← Sebelumnya</button>
+            <button id="nextBtn" class="green">Berikutnya →</button>
+            <button id="autoBtn">Auto Play</button>
+            <button id="resetBtn" class="secondary">Reset</button>
+          </div>
+
+          <div class="slider-wrap">
+            <div class="slider-label">
+              <span>Jumlah fold</span>
+              <span id="kValue">K = 5</span>
+            </div>
+            <input id="kSlider" type="range" min="3" max="5" value="5" step="1" />
+          </div>
+
+          <div>
+            <div class="slider-label" style="margin-bottom:8px;">
+              <span>Base model yang digunakan</span>
+              <span id="modelCount">3 model</span>
+            </div>
+            <div class="model-toggle">
+              <label class="model-check"><input type="checkbox" class="baseCheck" value="tree" checked /> Decision Tree</label>
+              <label class="model-check"><input type="checkbox" class="baseCheck" value="knn" checked /> KNN</label>
+              <label class="model-check"><input type="checkbox" class="baseCheck" value="nb" checked /> Naive Bayes</label>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="layout">
+      <nav class="steps" id="steps"></nav>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="panelTitle"></h2>
+            <p class="panel-note" id="panelNote"></p>
+          </div>
+          <span class="pill" id="stepPill"></span>
+        </div>
+
+        <div class="diagram" id="diagram"></div>
+        <div id="content"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const steps = [
+      {
+        title: "Split training data into K-folds",
+        short: "Data latih dibagi menjadi beberapa bagian seperti K-fold cross-validation.",
+        note: "Kita mulai dari data asli, lalu pisahkan sebagian sebagai test set. Sisa data menjadi training data dan dibagi menjadi K fold."
+      },
+      {
+        title: "Fit base model on K-1 folds",
+        short: "Model dilatih pada K-1 bagian dan memprediksi bagian validasi.",
+        note: "Untuk setiap fold, satu bagian dijadikan validation set. Base model tidak dilatih pada bagian itu, sehingga prediksinya disebut out-of-fold prediction."
+      },
+      {
+        title: "Repeat for every fold",
+        short: "Proses validasi diulang sampai semua data training pernah diprediksi.",
+        note: "Tujuannya adalah agar setiap baris training data memiliki prediksi dari model yang tidak pernah melihat baris tersebut saat training."
+      },
+      {
+        title: "Train base model on full training data",
+        short: "Setelah OOF selesai, base model dilatih ulang pada seluruh training data.",
+        note: "Model yang sudah dilatih pada seluruh training data kemudian digunakan untuk membuat prediksi pada test set."
+      },
+      {
+        title: "Repeat for other base models",
+        short: "Langkah yang sama dilakukan untuk semua base model.",
+        note: "Stacking biasanya memakai beberapa model berbeda agar pola prediksinya saling melengkapi."
+      },
+      {
+        title: "Use base predictions as new features",
+        short: "Prediksi dari base model menjadi fitur untuk second-level model.",
+        note: "Dataset baru untuk meta model berisi kolom prediksi dari setiap base model. Target aslinya tetap dipakai saat melatih meta model."
+      },
+      {
+        title: "Second-level model predicts test set",
+        short: "Meta model menggabungkan prediksi base model untuk membuat prediksi akhir.",
+        note: "Pada test set, base model membuat prediksi terlebih dahulu. Prediksi tersebut masuk ke meta model untuk menghasilkan output final."
+      }
+    ];
+
+    const originalRows = [
+      { id: 1, age: 18, hours: 2, actual: "No" },
+      { id: 2, age: 19, hours: 6, actual: "Yes" },
+      { id: 3, age: 20, hours: 3, actual: "No" },
+      { id: 4, age: 21, hours: 5, actual: "Yes" },
+      { id: 5, age: 22, hours: 4, actual: "Yes" },
+      { id: 6, age: 23, hours: 1, actual: "No" },
+      { id: 7, age: 24, hours: 7, actual: "Yes" },
+      { id: 8, age: 25, hours: 2, actual: "No" },
+      { id: 9, age: 26, hours: 6, actual: "Yes" },
+      { id: 10, age: 27, hours: 3, actual: "No" },
+      { id: 11, age: 28, hours: 5, actual: "Yes" },
+      { id: 12, age: 29, hours: 4, actual: "Yes" },
+      { id: 13, age: 30, hours: 2, actual: "No", test: true },
+      { id: 14, age: 31, hours: 6, actual: "?", test: true }
+    ];
+
+    const modelInfo = {
+      tree: { name: "Decision Tree", tag: "Base Model 1", desc: "Membuat aturan bertingkat, misalnya berdasarkan jam belajar dan usia." },
+      knn: { name: "KNN", tag: "Base Model 2", desc: "Mencari data yang mirip, lalu mengikuti mayoritas label tetangga terdekat." },
+      nb: { name: "Naive Bayes", tag: "Base Model 3", desc: "Menghitung peluang kelas berdasarkan fitur yang diamati." }
+    };
+
+    const oofPreds = {
+      tree: ["No", "Yes", "No", "Yes", "Yes", "No", "Yes", "No", "Yes", "No", "Yes", "Yes"],
+      knn:  ["No", "Yes", "No", "No",  "Yes", "No", "Yes", "No", "Yes", "No", "Yes", "Yes"],
+      nb:   ["No", "Yes", "No", "Yes", "No",  "No", "Yes", "No", "Yes", "No", "Yes", "Yes"]
+    };
+
+    const testPreds = {
+      tree: ["No", "Yes"],
+      knn:  ["No", "Yes"],
+      nb:   ["No", "No"]
+    };
+
+    let currentStep = 0;
+    let k = 5;
+    let activeModels = ["tree", "knn", "nb"];
+    let timer = null;
+
+    const stepsEl = document.getElementById("steps");
+    const diagramEl = document.getElementById("diagram");
+    const contentEl = document.getElementById("content");
+    const panelTitle = document.getElementById("panelTitle");
+    const panelNote = document.getElementById("panelNote");
+    const stepPill = document.getElementById("stepPill");
+    const kSlider = document.getElementById("kSlider");
+    const kValue = document.getElementById("kValue");
+    const modelCount = document.getElementById("modelCount");
+
+    function initSteps() {
+      stepsEl.innerHTML = steps.map((s, i) => `
+        <article class="step-card ${i === currentStep ? "active" : ""}" data-step="${i}">
+          <div class="step-num">${i + 1}</div>
+          <div>
+            <p class="step-title">${s.title}</p>
+            <p class="step-desc">${s.short}</p>
+          </div>
+        </article>
+      `).join("");
+
+      document.querySelectorAll(".step-card").forEach(card => {
+        card.addEventListener("click", () => {
+          currentStep = Number(card.dataset.step);
+          render();
+        });
+      });
+    }
+
+    function getTrainRows() {
+      return originalRows.filter(r => !r.test);
+    }
+
+    function getTestRows() {
+      return originalRows.filter(r => r.test);
+    }
+
+    function getFoldIndex(rowIndex) {
+      return rowIndex % k;
+    }
+
+    function renderDataBar(mode = "original", activeFold = 0) {
+      const rows = originalRows;
+      return `
+        <div class="data-bar" aria-label="Data bar">
+          ${rows.map((row, idx) => {
+            let cls = "seg-original";
+            let label = row.test ? `T${row.id}` : `${row.id}`;
+            if (mode !== "original") {
+              if (row.test) cls = "seg-test";
+              else if (getFoldIndex(idx) === activeFold) cls = "seg-valid";
+              else cls = "seg-train";
+            }
+            let extra = "";
+            if (mode === "fold" && !row.test && getFoldIndex(idx) === activeFold) extra = "highlight";
+            if (mode === "fold" && row.test) extra = "dim";
+            return `<div class="segment ${cls} ${extra}" style="flex:1">${label}</div>`;
+          }).join("")}
+        </div>
+        <div class="bar-labels">
+          <span>Training rows: 1–12</span>
+          <span>Test rows: 13–14</span>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="dot train"></span>Train dataset atau K-1 folds</span>
+          <span class="legend-item"><span class="dot valid"></span>Validation set / kth fold</span>
+          <span class="legend-item"><span class="dot test"></span>Test set</span>
+          <span class="legend-item"><span class="dot meta"></span>Prediction features</span>
+        </div>
+      `;
+    }
+
+    function renderFlow(activeFold = 0) {
+      return `
+        <div class="flow-grid">
+          <div class="flow-box blue-box">Train Dataset<br><span style="font-size:13px;color:#64748b;">K-1 folds</span></div>
+          <div class="arrow">→</div>
+          <div class="flow-box orange-box">Validation Set<br><span style="font-size:13px;color:#64748b;">Fold ${activeFold + 1}</span></div>
+          <div class="arrow">↓</div>
+          <div class="flow-box green-box">Predictions on<br>Validation Set</div>
+        </div>
+      `;
+    }
+
+    function renderFoldRows() {
+      const trainRows = getTrainRows();
+      let html = `<div class="folds">`;
+      for (let fold = 0; fold < k; fold++) {
+        html += `
+          <div class="fold-row">
+            <div class="fold-name">Fold ${fold + 1}</div>
+            <div class="mini-bar">
+              ${trainRows.map((r, idx) => {
+                const cls = getFoldIndex(idx) === fold ? "seg-valid" : "seg-train";
+                return `<div class="segment ${cls}" style="flex:1">${r.id}</div>`;
+              }).join("")}
+            </div>
+            <div class="fold-action">Train pada K-1 folds → prediksi fold ${fold + 1}</div>
+          </div>
+        `;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    function renderOriginalTable() {
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usia</th>
+                <th>Jam Belajar</th>
+                <th>Actual Label</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${originalRows.map(r => `
+                <tr>
+                  <td>${r.id}</td>
+                  <td>${r.age}</td>
+                  <td>${r.hours}</td>
+                  <td class="${r.actual === "Yes" ? "actual-yes" : r.actual === "No" ? "actual-no" : ""}">${r.actual}</td>
+                  <td>${r.test ? "Test set" : "Training data"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function predClass(value) {
+      return value === "Yes" ? "pred-yes" : "pred-no";
+    }
+
+    function renderOOFTable(limitToStep = false) {
+      const trainRows = getTrainRows();
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fold</th>
+                <th>Actual</th>
+                ${activeModels.map(m => `<th>${modelInfo[m].name}<br><span style="text-transform:none;letter-spacing:0;">OOF Prediction</span></th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${trainRows.map((r, idx) => `
+                <tr>
+                  <td>${r.id}</td>
+                  <td><span class="fold-chip">F${getFoldIndex(idx) + 1}</span></td>
+                  <td class="${r.actual === "Yes" ? "actual-yes" : "actual-no"}">${r.actual}</td>
+                  ${activeModels.map(m => `<td class="${predClass(oofPreds[m][idx])} ${limitToStep && currentStep >= 5 ? "highlight-cell" : ""}">${oofPreds[m][idx]}</td>`).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderModelCards() {
+      return `
+        <div class="cards">
+          ${activeModels.map(m => `
+            <article class="model-card">
+              <div class="model-name">
+                <span>${modelInfo[m].name}</span>
+                <span class="tag">${modelInfo[m].tag}</span>
+              </div>
+              <p class="tiny">${modelInfo[m].desc}</p>
+              <div class="formula">Input asli: usia, jam belajar<br>Output: prediksi Yes/No</div>
+              <p class="tiny"><strong>Dalam stacking:</strong> output model ini nanti menjadi satu kolom fitur untuk meta model.</p>
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderFullTrainAndTest() {
+      const testRows = getTestRows();
+      return `
+        <div class="cards">
+          ${activeModels.map(m => `
+            <article class="model-card">
+              <div class="model-name">
+                <span>${modelInfo[m].name}</span>
+                <span class="tag">Full train</span>
+              </div>
+              <p class="tiny">Sekarang model dilatih ulang memakai semua data training, bukan hanya K-1 folds.</p>
+              <div class="formula">
+                Test row ${testRows[0].id} → ${testPreds[m][0]}<br>
+                Test row ${testRows[1].id} → ${testPreds[m][1]}
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderMetaTable() {
+      const trainRows = getTrainRows();
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="left">Meta training row</th>
+                ${activeModels.map(m => `<th>Feature: ${modelInfo[m].name}</th>`).join("")}
+                <th>Target Asli</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${trainRows.map((r, idx) => `
+                <tr>
+                  <td class="left">Data ${r.id}</td>
+                  ${activeModels.map(m => `<td class="highlight-cell ${predClass(oofPreds[m][idx])}">${oofPreds[m][idx]}</td>`).join("")}
+                  <td class="${r.actual === "Yes" ? "actual-yes" : "actual-no"}">${r.actual}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderFinalPrediction() {
+      const testRows = getTestRows();
+      const modelBars = activeModels.map((m, i) => {
+        const yesCount = testPreds[m].filter(x => x === "Yes").length;
+        const pct = yesCount / testPreds[m].length * 100;
+        return `
+          <div class="feature-row">
+            <div>
+              ${modelInfo[m].name}<br>
+              <span style="font-size:12px;color:#64748b;">Test predictions: ${testPreds[m].join(", ")}</span>
+            </div>
+            <div class="prob"><span style="width:${pct}%"></span></div>
+          </div>
+        `;
+      }).join("");
+
+      const final = activeModels.length === 1 ? "Mengikuti base model" : "Yes";
+      return `
+        <div class="meta-visual">
+          <div class="stack-feature">
+            <h3 style="margin:0 0 10px;">Input untuk Meta Model</h3>
+            ${modelBars}
+          </div>
+          <div class="arrow">→</div>
+          <div class="final-prediction">
+            <div>
+              <div class="big">${final}</div>
+              <div class="small">Prediksi akhir dari second-level model untuk test set.</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Test</th>
+                ${activeModels.map(m => `<th>${modelInfo[m].name}</th>`).join("")}
+                <th>Meta Model Output</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${testRows.map((r, idx) => {
+                const yesVotes = activeModels.filter(m => testPreds[m][idx] === "Yes").length;
+                const out = yesVotes >= Math.ceil(activeModels.length / 2) ? "Yes" : "No";
+                return `
+                  <tr>
+                    <td>${r.id}</td>
+                    ${activeModels.map(m => `<td class="${predClass(testPreds[m][idx])}">${testPreds[m][idx]}</td>`).join("")}
+                    <td class="highlight-cell ${predClass(out)}">${out}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderExplanation(title, text, icon = "✓") {
+      return `
+        <div class="explain-box">
+          <div class="explain-icon">${icon}</div>
+          <div>
+            <h3>${title}</h3>
+            <p>${text}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStepContent() {
+      const activeFold = Math.min(currentStep, k - 1);
+
+      if (currentStep === 0) {
+        diagramEl.innerHTML = renderDataBar("split", 0) + renderFoldRows();
+        contentEl.innerHTML = renderOriginalTable() + renderExplanation(
+          "Inti langkah 1",
+          "Data test dipisahkan terlebih dahulu. Stacking tidak boleh memakai test set saat membangun fitur meta model. Training data saja yang dibagi menjadi K fold.",
+          "1"
+        );
+      }
+
+      if (currentStep === 1) {
+        diagramEl.innerHTML = renderDataBar("fold", activeFold) + renderFlow(activeFold);
+        contentEl.innerHTML = renderModelCards() + renderExplanation(
+          "Inti langkah 2",
+          "Pada satu iterasi, base model dilatih pada K-1 fold. Fold yang tersisa diperlakukan sebagai validation set dan diprediksi oleh model tersebut.",
+          "2"
+        );
+      }
+
+      if (currentStep === 2) {
+        diagramEl.innerHTML = renderFoldRows();
+        contentEl.innerHTML = renderOOFTable(false) + renderExplanation(
+          "Inti langkah 3",
+          "Setelah semua fold selesai, setiap data training memiliki prediksi out-of-fold. Ini penting supaya prediksi training tidak terlalu optimistis karena model tidak memprediksi data yang pernah ia lihat saat dilatih.",
+          "3"
+        );
+      }
+
+      if (currentStep === 3) {
+        diagramEl.innerHTML = renderDataBar("split", 0) + `
+          <div class="flow-grid">
+            <div class="flow-box blue-box">Full Training Data<br><span style="font-size:13px;color:#64748b;">rows 1–12</span></div>
+            <div class="arrow">→</div>
+            <div class="flow-box purple-box">Test Set<br><span style="font-size:13px;color:#64748b;">rows 13–14</span></div>
+            <div class="arrow">→</div>
+            <div class="flow-box green-box">Base Model<br>Test Predictions</div>
+          </div>
+        `;
+        contentEl.innerHTML = renderFullTrainAndTest() + renderExplanation(
+          "Inti langkah 4",
+          "Out-of-fold prediction dipakai untuk melatih meta model pada data training. Untuk test set, base model dilatih ulang memakai seluruh training data agar informasi latihnya maksimal.",
+          "4"
+        );
+      }
+
+      if (currentStep === 4) {
+        diagramEl.innerHTML = renderDataBar("fold", activeFold) + renderModelCards();
+        contentEl.innerHTML = renderOOFTable(false) + renderExplanation(
+          "Inti langkah 5",
+          "Kita mengulang proses yang sama untuk setiap base model. Jika ada tiga base model, maka akan ada tiga kolom prediksi baru untuk meta model.",
+          "5"
+        );
+      }
+
+      if (currentStep === 5) {
+        diagramEl.innerHTML = `
+          <div class="flow-grid">
+            <div class="flow-box blue-box">Original Features<br><span style="font-size:13px;color:#64748b;">usia, jam belajar</span></div>
+            <div class="arrow">→</div>
+            <div class="flow-box green-box">Base Model<br>OOF Predictions</div>
+            <div class="arrow">→</div>
+            <div class="flow-box purple-box">Meta Training Data<br><span style="font-size:13px;color:#64748b;">prediction features</span></div>
+          </div>
+        `;
+        contentEl.innerHTML = renderMetaTable() + renderExplanation(
+          "Inti langkah 6",
+          "Meta model tidak langsung membaca fitur asli sebagai input utama dalam contoh sederhana ini. Ia membaca pola dari prediksi base model, lalu belajar kapan harus percaya pada model tertentu.",
+          "6"
+        );
+      }
+
+      if (currentStep === 6) {
+        diagramEl.innerHTML = `
+          <div class="flow-grid">
+            <div class="flow-box purple-box">Test Set</div>
+            <div class="arrow">→</div>
+            <div class="flow-box green-box">Base Model<br>Predictions</div>
+            <div class="arrow">→</div>
+            <div class="flow-box orange-box">Second-level Model<br>Final Prediction</div>
+          </div>
+        `;
+        contentEl.innerHTML = renderFinalPrediction() + renderExplanation(
+          "Inti langkah 7",
+          "Second-level model menjadi pengambil keputusan akhir. Ia menggabungkan sinyal dari base model, sehingga hasil akhirnya bisa lebih stabil dibanding memakai satu model saja.",
+          "7"
+        ) + `<div class="warning">Catatan: Pada playground ini, prediksi dibuat sederhana untuk tujuan pembelajaran. Pada kasus nyata, base model dan meta model benar-benar dilatih menggunakan algoritma machine learning.</div>`;
+      }
+    }
+
+    function render() {
+      if (activeModels.length === 0) {
+        activeModels = ["tree"];
+        document.querySelector('.baseCheck[value="tree"]').checked = true;
+      }
+      initSteps();
+      const s = steps[currentStep];
+      panelTitle.textContent = s.title;
+      panelNote.textContent = s.note;
+      stepPill.textContent = `Step ${currentStep + 1} / ${steps.length}`;
+      kValue.textContent = `K = ${k}`;
+      modelCount.textContent = `${activeModels.length} model`;
+      renderStepContent();
+    }
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      currentStep = Math.max(0, currentStep - 1);
+      render();
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      currentStep = Math.min(steps.length - 1, currentStep + 1);
+      render();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      currentStep = 0;
+      k = 5;
+      kSlider.value = 5;
+      document.querySelectorAll(".baseCheck").forEach(c => c.checked = true);
+      activeModels = ["tree", "knn", "nb"];
+      stopAuto();
+      render();
+    });
+
+    function stopAuto() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      document.getElementById("autoBtn").textContent = "Auto Play";
+    }
+
+    document.getElementById("autoBtn").addEventListener("click", () => {
+      if (timer) {
+        stopAuto();
+        return;
+      }
+      document.getElementById("autoBtn").textContent = "Stop";
+      timer = setInterval(() => {
+        if (currentStep >= steps.length - 1) {
+          stopAuto();
+          return;
+        }
+        currentStep += 1;
+        render();
+      }, 1800);
+    });
+
+    kSlider.addEventListener("input", (e) => {
+      k = Number(e.target.value);
+      render();
+    });
+
+    document.querySelectorAll(".baseCheck").forEach(check => {
+      check.addEventListener("change", () => {
+        activeModels = Array.from(document.querySelectorAll(".baseCheck:checked")).map(c => c.value);
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

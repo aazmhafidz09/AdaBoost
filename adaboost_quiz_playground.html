@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdaBoost Quiz Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --surface2:#F0EDE6;
+  --border:#E2DDD5;
+  --text:#1A1814;
+  --muted:#7A746B;
+  --accent:#C84B2F;
+  --accent2:#2E6B4F;
+  --accent3:#1E4A8A;
+  --mono:'DM Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --display:'Fraunces',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+.page{max-width:820px;margin:0 auto;padding:2.5rem 1.5rem 4rem}
+
+/* header */
+.header{margin-bottom:2.5rem;border-bottom:1.5px solid var(--border);padding-bottom:1.5rem}
+.tag{display:inline-block;background:var(--accent);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:3px 10px;border-radius:3px;margin-bottom:.75rem}
+h1{font-family:var(--display);font-size:2.2rem;font-weight:600;line-height:1.2;margin-bottom:.5rem}
+.subtitle{color:var(--muted);font-size:14px}
+
+/* soal box */
+.soal-box{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
+.soal-title{font-family:var(--display);font-size:1rem;font-weight:600;margin-bottom:.75rem;color:var(--accent)}
+p{color:var(--text);font-size:14px;line-height:1.7}
+
+/* dataset table */
+.tbl-wrap{overflow-x:auto;margin:1rem 0}
+table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--mono)}
+thead tr{background:var(--text);color:#fff}
+th{padding:8px 12px;text-align:center;font-weight:500;font-size:12px;letter-spacing:.04em}
+th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--surface2)}
+td{padding:7px 12px;text-align:center}
+td:first-child{text-align:left;font-weight:500}
+.chip{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:500;font-family:var(--sans)}
+.c-ya{background:#DCF0E6;color:#1A5E38}
+.c-tdk{background:#FDECEA;color:#8B2218}
+.c-lk{background:#E8EDFA;color:#1E3E7A}
+.c-pr{background:#FAE8F5;color:#6B1A5E}
+.c-t{background:#FFF3E0;color:#7A4500}
+.c-r{background:#E8F4F0;color:#1A5040}
+
+/* model info */
+.model-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:1rem 0}
+.model-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.875rem 1rem}
+.model-num{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:4px}
+.model-rule{font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.5}
+
+/* iterasi section */
+.iter-section{margin-bottom:2rem}
+.iter-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.iter-badge{background:var(--text);color:#fff;font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:4px}
+.iter-title{font-family:var(--display);font-size:1.1rem;font-weight:600}
+
+/* formula */
+.formula{background:#1A1814;color:#E8E4DC;font-family:var(--mono);font-size:13px;padding:1rem 1.25rem;border-radius:8px;margin:.75rem 0;line-height:1.9}
+.formula .hl{color:#F4A35A}
+.formula .hl2{color:#6DD49A}
+.formula .hl3{color:#79B8FF}
+
+/* answer input section */
+.q-block{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+.q-label{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:.5rem;font-family:var(--mono)}
+.q-text{font-size:14px;margin-bottom:.75rem;color:var(--text)}
+.input-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ans-input{font-family:var(--mono);font-size:14px;padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);width:120px;outline:none;transition:border .2s}
+.ans-input:focus{border-color:var(--accent3)}
+.unit{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.check-btn{padding:7px 18px;background:var(--text);color:#fff;border:none;border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s}
+.check-btn:hover{background:#3A342E}
+.result-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;font-family:var(--mono)}
+.r-ok{background:#DCF0E6;color:#1A5E38}
+.r-err{background:#FDECEA;color:#8B2218}
+.r-hint{background:#FFF8E6;color:#7A4500;font-size:11px;margin-top:4px;display:block;font-family:var(--mono)}
+
+/* h(x) table inputs */
+.pred-table td input{width:52px}
+.wt-table td input{width:72px}
+
+/* final section */
+.final-table th{font-size:11px}
+.final-table td{font-size:12px;font-family:var(--mono)}
+
+/* score banner */
+.score-banner{display:none;background:var(--text);color:#fff;border-radius:12px;padding:1.5rem;text-align:center;margin-top:2rem}
+.score-banner.show{display:block}
+.score-num{font-family:var(--display);font-size:3rem;font-weight:600;line-height:1}
+.score-sub{font-size:14px;color:#C8C2B8;margin-top:.5rem}
+
+/* divider */
+.divider{border:none;border-top:1px dashed var(--border);margin:2rem 0}
+
+@media(max-width:600px){
+  .model-grid{grid-template-columns:1fr}
+  h1{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="tag">CAK3JAB3 · Ensemble Learning</div>
+    <h1>AdaBoost Quiz<br>Playground</h1>
+    <p class="subtitle">Selesaikan algoritma AdaBoost 3 iterasi dengan dataset kelayakan kredit. Isi setiap jawaban dan cek hasilnya secara langsung.</p>
+  </div>
+
+  <!-- Soal -->
+  <div class="soal-box">
+    <div class="soal-title">Deskripsi Soal</div>
+    <p>Suatu algoritma <strong>AdaBoost</strong> yang terdiri dari <strong>3 weak model</strong> dikembangkan secara sekuensial menggunakan dataset yang terdiri dari <strong>9 data point</strong> nasabah bank. Setiap data memiliki fitur: <em>Status Pekerjaan</em>, <em>Kepemilikan Rumah</em>, dan <em>Pendapatan (juta/bulan)</em> dengan label target <strong>Layak Kredit</strong> (Ya = +1, Tidak = −1).</p>
+    <br>
+    <p>Selesaikan algoritma boosting menggunakan metode AdaBoost untuk: <strong>(a)</strong> menghitung weighted error dan bobot setiap weak model, <strong>(b)</strong> update bobot setiap data point setelah tiap iterasi, dan <strong>(c)</strong> prediksi kelas akhir setiap data.</p>
+  </div>
+
+  <!-- Dataset -->
+  <div class="soal-box">
+    <div class="soal-title">Dataset — 9 Data Nasabah</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>Status Pekerjaan</th><th>Kepemilikan Rumah</th><th>Pendapatan (jt)</th><th>Layak Kredit (yᵢ)</th><th>W₀(i)</th>
+          </tr>
+        </thead>
+        <tbody id="dataset-tbody"></tbody>
+      </table>
+    </div>
+    <div class="formula" style="margin-top:.75rem">
+      <span class="hl">W₀(i)</span> = 1/N = 1/9 ≈ <span class="hl2">0.1111</span> &nbsp;untuk semua i<br>
+      Label: &nbsp;<span class="hl2">Ya → +1</span> &nbsp;|&nbsp; <span style="color:#F08080">Tidak → −1</span>
+    </div>
+  </div>
+
+  <!-- Model Rules -->
+  <div class="soal-box">
+    <div class="soal-title">Aturan 3 Weak Model</div>
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="model-num">MODEL 1</div>
+        <div class="model-rule">if Status = Tetap<br>→ ŷ = +1<br>else → ŷ = −1</div>
+      </div>
+      <div class="model-card">
+        <div class="model-num">MODEL 2</div>
+        <div class="model-rule">if Pendapatan ≥ 5<br>→ ŷ = +1<br>else → ŷ = −1</div>
+      </div>
+      <div class="model-card">
+        <div class="model-num">MODEL 3</div>
+        <div class="model-rule">if Rumah = Milik<br>→ ŷ = +1<br>else → ŷ = −1</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ITERASI 1 -->
+  <div class="iter-section">
+    <div class="iter-header">
+      <span class="iter-badge">ITERASI 1</span>
+      <span class="iter-title">Model 1 — Status Pekerjaan = Tetap</span>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 1 · Prediksi h₁(xᵢ)</div>
+      <p class="q-text">Isi prediksi h₁ untuk setiap data berdasarkan rule Model 1. Gunakan +1 atau -1.</p>
+      <div class="tbl-wrap">
+        <table class="pred-table">
+          <thead><tr><th>No</th><th>Status</th><th>yᵢ</th><th>h₁(xᵢ)</th><th>Benar?</th></tr></thead>
+          <tbody id="iter1-pred-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkPreds(1)">Cek Prediksi</button>
+        <span id="pred1-result"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 2 · Hitung ε₁ (Weighted Error)</div>
+      <div class="formula">ε₁ = <span class="hl">Σ</span> W₀(i) × <span class="hl2">𝟙[h₁(xᵢ) ≠ yᵢ]</span><br>
+      = jumlah bobot dari data yang <span style="color:#F08080">salah diprediksi</span></div>
+      <div class="input-row">
+        <span class="q-text" style="margin-bottom:0">ε₁ =</span>
+        <input class="ans-input" id="ans-eps1" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('eps1', getEps(0), 'ans-eps1', 'res-eps1', 4)">Cek</button>
+        <span id="res-eps1"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 3 · Hitung α₁ (Bobot Model)</div>
+      <div class="formula">α₁ = <span class="hl">½</span> × ln( <span class="hl2">(1 − ε₁)</span> / <span style="color:#F08080">ε₁</span> )</div>
+      <div class="input-row">
+        <span class="q-text" style="margin-bottom:0">α₁ =</span>
+        <input class="ans-input" id="ans-alpha1" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('alpha1', getAlpha(0), 'ans-alpha1', 'res-alpha1', 4)">Cek</button>
+        <span id="res-alpha1"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 4 · Update Bobot W₁(i)</div>
+      <div class="formula">
+        W_raw(i) = W₀(i) × exp( <span class="hl">−α₁</span> × <span class="hl2">yᵢ</span> × <span class="hl3">h₁(xᵢ)</span> )<br>
+        Z₁ = Σ W_raw(i) &nbsp;&nbsp;&nbsp; ← faktor normalisasi<br>
+        W₁(i) = W_raw(i) / Z₁
+      </div>
+      <div class="input-row" style="margin-bottom:.75rem">
+        <span class="q-text" style="margin-bottom:0">Z₁ =</span>
+        <input class="ans-input" id="ans-z1" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('z1', getZ(0), 'ans-z1', 'res-z1', 4)">Cek Z₁</button>
+        <span id="res-z1"></span>
+      </div>
+      <p class="q-text" style="margin-bottom:.5rem">Isi bobot baru W₁(i) untuk setiap data:</p>
+      <div class="tbl-wrap">
+        <table class="wt-table">
+          <thead><tr><th>No</th><th>yᵢ</th><th>h₁(xᵢ)</th><th>W₀(i)</th><th>W_raw(i)</th><th>W₁(i) jawaban</th></tr></thead>
+          <tbody id="iter1-wt-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkWeights(1)">Cek Bobot W₁</button>
+        <span id="wt1-result"></span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ITERASI 2 -->
+  <div class="iter-section">
+    <div class="iter-header">
+      <span class="iter-badge">ITERASI 2</span>
+      <span class="iter-title">Model 2 — Pendapatan ≥ 5</span>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 1 · Prediksi h₂(xᵢ)</div>
+      <div class="tbl-wrap">
+        <table class="pred-table">
+          <thead><tr><th>No</th><th>Pendapatan</th><th>yᵢ</th><th>h₂(xᵢ)</th><th>Benar?</th></tr></thead>
+          <tbody id="iter2-pred-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkPreds(2)">Cek Prediksi</button>
+        <span id="pred2-result"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 2–3 · Hitung ε₂ dan α₂</div>
+      <div class="formula">ε₂ = <span class="hl">Σ</span> W₁(i) × <span class="hl2">𝟙[h₂(xᵢ) ≠ yᵢ]</span> &nbsp;← gunakan W₁ hasil iterasi 1<br>
+      α₂ = <span class="hl">½</span> × ln( (1 − ε₂) / ε₂ )</div>
+      <div class="input-row" style="margin-bottom:.6rem">
+        <span class="q-text" style="margin-bottom:0">ε₂ =</span>
+        <input class="ans-input" id="ans-eps2" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('eps2', getEps(1), 'ans-eps2', 'res-eps2', 4)">Cek</button>
+        <span id="res-eps2"></span>
+      </div>
+      <div class="input-row">
+        <span class="q-text" style="margin-bottom:0">α₂ =</span>
+        <input class="ans-input" id="ans-alpha2" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('alpha2', getAlpha(1), 'ans-alpha2', 'res-alpha2', 4)">Cek</button>
+        <span id="res-alpha2"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 4 · Update Bobot W₂(i)</div>
+      <div class="input-row" style="margin-bottom:.75rem">
+        <span class="q-text" style="margin-bottom:0">Z₂ =</span>
+        <input class="ans-input" id="ans-z2" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('z2', getZ(1), 'ans-z2', 'res-z2', 4)">Cek Z₂</button>
+        <span id="res-z2"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="wt-table">
+          <thead><tr><th>No</th><th>yᵢ</th><th>h₂(xᵢ)</th><th>W₁(i)</th><th>W_raw(i)</th><th>W₂(i) jawaban</th></tr></thead>
+          <tbody id="iter2-wt-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkWeights(2)">Cek Bobot W₂</button>
+        <span id="wt2-result"></span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ITERASI 3 -->
+  <div class="iter-section">
+    <div class="iter-header">
+      <span class="iter-badge">ITERASI 3</span>
+      <span class="iter-title">Model 3 — Kepemilikan Rumah = Milik</span>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 1 · Prediksi h₃(xᵢ)</div>
+      <div class="tbl-wrap">
+        <table class="pred-table">
+          <thead><tr><th>No</th><th>Rumah</th><th>yᵢ</th><th>h₃(xᵢ)</th><th>Benar?</th></tr></thead>
+          <tbody id="iter3-pred-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkPreds(3)">Cek Prediksi</button>
+        <span id="pred3-result"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 2–3 · Hitung ε₃ dan α₃</div>
+      <div class="formula">ε₃ = <span class="hl">Σ</span> W₂(i) × <span class="hl2">𝟙[h₃(xᵢ) ≠ yᵢ]</span><br>
+      α₃ = <span class="hl">½</span> × ln( (1 − ε₃) / ε₃ )</div>
+      <div class="input-row" style="margin-bottom:.6rem">
+        <span class="q-text" style="margin-bottom:0">ε₃ =</span>
+        <input class="ans-input" id="ans-eps3" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('eps3', getEps(2), 'ans-eps3', 'res-eps3', 4)">Cek</button>
+        <span id="res-eps3"></span>
+      </div>
+      <div class="input-row">
+        <span class="q-text" style="margin-bottom:0">α₃ =</span>
+        <input class="ans-input" id="ans-alpha3" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('alpha3', getAlpha(2), 'ans-alpha3', 'res-alpha3', 4)">Cek</button>
+        <span id="res-alpha3"></span>
+      </div>
+    </div>
+
+    <div class="soal-box">
+      <div class="q-label">Langkah 4 · Update Bobot W₃(i)</div>
+      <div class="input-row" style="margin-bottom:.75rem">
+        <span class="q-text" style="margin-bottom:0">Z₃ =</span>
+        <input class="ans-input" id="ans-z3" type="text" placeholder="0.xxxx">
+        <button class="check-btn" onclick="checkVal('z3', getZ(2), 'ans-z3', 'res-z3', 4)">Cek Z₃</button>
+        <span id="res-z3"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="wt-table">
+          <thead><tr><th>No</th><th>yᵢ</th><th>h₃(xᵢ)</th><th>W₂(i)</th><th>W_raw(i)</th><th>W₃(i) jawaban</th></tr></thead>
+          <tbody id="iter3-wt-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkWeights(3)">Cek Bobot W₃</button>
+        <span id="wt3-result"></span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- PREDIKSI AKHIR -->
+  <div class="iter-section">
+    <div class="iter-header">
+      <span class="iter-badge">PREDIKSI AKHIR</span>
+      <span class="iter-title">H(x) = sign(α₁h₁ + α₂h₂ + α₃h₃)</span>
+    </div>
+    <div class="soal-box">
+      <div class="q-label">Isi prediksi akhir setiap data</div>
+      <div class="formula">H(xᵢ) = <span class="hl">sign</span>( α₁·h₁(xᵢ) + α₂·h₂(xᵢ) + α₃·h₃(xᵢ) )<br>
+      Jika Σ ≥ 0 → ŷ = <span class="hl2">+1 (Ya)</span>, jika Σ &lt; 0 → ŷ = <span style="color:#F08080">−1 (Tidak)</span></div>
+      <div class="tbl-wrap">
+        <table class="final-table">
+          <thead><tr><th>No</th><th>α₁h₁</th><th>α₂h₂</th><th>α₃h₃</th><th>Σ (skor)</th><th>ŷ prediksi</th><th>yᵢ asli</th></tr></thead>
+          <tbody id="final-tbody"></tbody>
+        </table>
+      </div>
+      <div class="input-row" style="margin-top:.75rem">
+        <button class="check-btn" onclick="checkFinal()">Cek Prediksi Akhir</button>
+        <span id="final-result"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Banner -->
+  <div class="score-banner" id="score-banner">
+    <div class="score-num" id="score-num">—</div>
+    <div class="score-sub" id="score-sub">Selesaikan semua soal untuk melihat skor akhir</div>
+  </div>
+
+  <div style="margin-top:2rem;text-align:center">
+    <button class="check-btn" onclick="showFinalScore()" style="padding:10px 28px;font-size:14px">Lihat Skor Akhir</button>
+  </div>
+
+</div>
+
+<script>
+const dataset=[
+  {no:1,status:'Tetap',   rumah:'Milik', pendapatan:7,  label:1},
+  {no:2,status:'Tetap',   rumah:'Sewa',  pendapatan:5,  label:1},
+  {no:3,status:'Kontrak', rumah:'Milik', pendapatan:6,  label:1},
+  {no:4,status:'Tetap',   rumah:'Sewa',  pendapatan:4,  label:1},
+  {no:5,status:'Kontrak', rumah:'Sewa',  pendapatan:3,  label:-1},
+  {no:6,status:'Tetap',   rumah:'Sewa',  pendapatan:3,  label:-1},
+  {no:7,status:'Kontrak', rumah:'Milik', pendapatan:4,  label:-1},
+  {no:8,status:'Kontrak', rumah:'Sewa',  pendapatan:6,  label:-1},
+  {no:9,status:'Tetap',   rumah:'Milik', pendapatan:2,  label:-1},
+];
+const N=dataset.length;
+const W0=Array(N).fill(1/N);
+
+const models=[
+  {predict:d=>d.status==='Tetap'?1:-1},
+  {predict:d=>d.pendapatan>=5?1:-1},
+  {predict:d=>d.rumah==='Milik'?1:-1},
+];
+
+let iters=[];
+function computeAll(){
+  let W=[...W0];
+  iters=[];
+  for(let m=0;m<3;m++){
+    const preds=dataset.map(d=>models[m].predict(d));
+    const wrong=preds.map((p,i)=>p!==dataset[i].label?1:0);
+    const eps=wrong.reduce((s,w,i)=>s+W[i]*w,0);
+    const alpha=0.5*Math.log((1-eps)/eps);
+    const rawW=W.map((w,i)=>w*Math.exp(-alpha*dataset[i].label*preds[i]));
+    const Z=rawW.reduce((s,v)=>s+v,0);
+    const newW=rawW.map(v=>v/Z);
+    iters.push({W:[...W],preds,wrong,eps,alpha,rawW,Z,newW});
+    W=newW;
+  }
+}
+computeAll();
+
+function getEps(m){return iters[m].eps;}
+function getAlpha(m){return iters[m].alpha;}
+function getZ(m){return iters[m].Z;}
+
+function f(v,d=4){return v.toFixed(d);}
+
+function chipStatus(s){return `<span class="chip ${s==='Tetap'?'c-lk':'c-r'}">${s}</span>`;}
+function chipRumah(r){return `<span class="chip ${r==='Milik'?'c-t':'c-r'}">${r}</span>`;}
+function chipLabel(l){return `<span class="chip ${l===1?'c-ya':'c-tdk'}">${l===1?'Ya (+1)':'Tidak (−1)'}</span>`;}
+
+function buildDataset(){
+  const tb=document.getElementById('dataset-tbody');
+  tb.innerHTML=dataset.map(d=>`<tr>
+    <td>${d.no}</td>
+    <td>${chipStatus(d.status)}</td>
+    <td>${chipRumah(d.rumah)}</td>
+    <td>${d.pendapatan}</td>
+    <td>${chipLabel(d.label)}</td>
+    <td style="font-family:var(--mono)">${f(1/N)}</td>
+  </tr>`).join('');
+}
+
+function buildPredTable(iterIdx){
+  const colKey=['status','pendapatan','rumah'][iterIdx];
+  const colLabel=['Status','Pendapatan','Rumah'][iterIdx];
+  const tbId=`iter${iterIdx+1}-pred-tbody`;
+  const tb=document.getElementById(tbId);
+  const correctPreds=iters[iterIdx].preds;
+  tb.innerHTML=dataset.map((d,i)=>{
+    const colVal=colIdx=>{
+      if(colIdx===0)return chipStatus(d.status);
+      if(colIdx===1)return d.pendapatan;
+      return chipRumah(d.rumah);
+    };
+    return `<tr>
+      <td>${d.no}</td>
+      <td>${colVal(iterIdx)}</td>
+      <td>${chipLabel(d.label)}</td>
+      <td><input class="ans-input" id="pred${iterIdx+1}_${i}" type="text" placeholder="+1/-1" style="width:60px"></td>
+      <td id="pred${iterIdx+1}_res_${i}"></td>
+    </tr>`;
+  }).join('');
+}
+
+function buildWeightTable(iterIdx){
+  const tb=document.getElementById(`iter${iterIdx+1}-wt-tbody`);
+  const it=iters[iterIdx];
+  tb.innerHTML=dataset.map((d,i)=>`<tr>
+    <td>${d.no}</td>
+    <td>${d.label===1?'+1':'−1'}</td>
+    <td>${it.preds[i]===1?'+1':'−1'}</td>
+    <td style="font-family:var(--mono)">${f(it.W[i])}</td>
+    <td style="font-family:var(--mono)">${f(it.rawW[i])}</td>
+    <td><input class="ans-input" id="wt${iterIdx+1}_${i}" type="text" placeholder="0.xxxx" style="width:80px"></td>
+  </tr>`).join('');
+}
+
+function buildFinalTable(){
+  const tb=document.getElementById('final-tbody');
+  const a=iters.map(it=>it.alpha);
+  const p=iters.map(it=>it.preds);
+  tb.innerHTML=dataset.map((d,i)=>{
+    const v1=a[0]*p[0][i];
+    const v2=a[1]*p[1][i];
+    const v3=a[2]*p[2][i];
+    const sum=v1+v2+v3;
+    return `<tr>
+      <td>${d.no}</td>
+      <td style="font-family:var(--mono)">${f(v1,3)}</td>
+      <td style="font-family:var(--mono)">${f(v2,3)}</td>
+      <td style="font-family:var(--mono)">${f(v3,3)}</td>
+      <td style="font-family:var(--mono)">${f(sum,3)}</td>
+      <td><input class="ans-input" id="final_${i}" type="text" placeholder="+1/-1" style="width:60px"></td>
+      <td>${chipLabel(d.label)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function parseNum(v){return parseFloat(v.replace(',','.'));}
+function near(a,b,tol=0.005){return Math.abs(a-b)<tol;}
+
+let score=0;
+let maxScore=0;
+let scored={};
+
+function checkVal(key,correct,inputId,resId,dp){
+  const val=parseNum(document.getElementById(inputId).value);
+  const el=document.getElementById(resId);
+  if(isNaN(val)){el.innerHTML=`<span class="result-tag r-err">Isi dulu</span>`;return;}
+  const ok=near(val,correct,0.008);
+  el.innerHTML=ok
+    ?`<span class="result-tag r-ok">✓ Benar (${f(correct,dp)})</span>`
+    :`<span class="result-tag r-err">✗ Salah</span><span class="r-hint">Hint: gunakan 4 desimal. Jawaban sekitar ${f(correct,dp)}</span>`;
+  if(!scored[key]&&ok){scored[key]=true;}
+}
+
+function checkPreds(iterIdx){
+  const it=iters[iterIdx-1];
+  let ok=0;
+  dataset.forEach((d,i)=>{
+    const val=parseInt(document.getElementById(`pred${iterIdx}_${i}`).value);
+    const correct=it.preds[i];
+    const el=document.getElementById(`pred${iterIdx}_res_${i}`);
+    if(val===correct){
+      el.innerHTML=`<span class="chip c-ya">✓</span>`;
+      ok++;
+    } else {
+      el.innerHTML=`<span class="chip c-tdk">✗</span>`;
+    }
+  });
+  const el=document.getElementById(`pred${iterIdx}-result`);
+  el.innerHTML=ok===N
+    ?`<span class="result-tag r-ok">Semua benar!</span>`
+    :`<span class="result-tag r-err">${ok}/${N} benar</span>`;
+  if(ok===N&&!scored[`pred${iterIdx}`]){scored[`pred${iterIdx}`]=true;}
+}
+
+function checkWeights(iterIdx){
+  const it=iters[iterIdx-1];
+  let ok=0;
+  dataset.forEach((d,i)=>{
+    const val=parseNum(document.getElementById(`wt${iterIdx}_${i}`).value||'');
+    const correct=it.newW[i];
+    if(near(val,correct,0.008))ok++;
+  });
+  const el=document.getElementById(`wt${iterIdx}-result`);
+  el.innerHTML=ok===N
+    ?`<span class="result-tag r-ok">Semua bobot benar!</span>`
+    :`<span class="result-tag r-err">${ok}/${N} benar — periksa kembali</span>`;
+  if(ok===N&&!scored[`wt${iterIdx}`]){scored[`wt${iterIdx}`]=true;}
+}
+
+function checkFinal(){
+  const a=iters.map(it=>it.alpha);
+  const p=iters.map(it=>it.preds);
+  let ok=0;
+  dataset.forEach((d,i)=>{
+    const sum=a[0]*p[0][i]+a[1]*p[1][i]+a[2]*p[2][i];
+    const correct=sum>=0?1:-1;
+    const val=parseInt(document.getElementById(`final_${i}`).value);
+    if(val===correct)ok++;
+  });
+  const el=document.getElementById('final-result');
+  el.innerHTML=ok===N
+    ?`<span class="result-tag r-ok">Sempurna! ${ok}/${N} benar</span>`
+    :`<span class="result-tag r-err">${ok}/${N} benar</span>`;
+  if(ok===N&&!scored['final']){scored['final']=true;}
+}
+
+function showFinalScore(){
+  const keys=['pred1','eps1','alpha1','z1','wt1',
+              'pred2','eps2','alpha2','z2','wt2',
+              'pred3','eps3','alpha3','z3','wt3','final'];
+  const total=keys.filter(k=>scored[k]).length;
+  const pct=Math.round(total/keys.length*100);
+  const banner=document.getElementById('score-banner');
+  document.getElementById('score-num').textContent=pct+'%';
+  document.getElementById('score-sub').textContent=`${total} dari ${keys.length} bagian dijawab dengan benar`;
+  banner.classList.add('show');
+  banner.scrollIntoView({behavior:'smooth'});
+}
+
+buildDataset();
+buildPredTable(0);
+buildPredTable(1);
+buildPredTable(2);
+buildWeightTable(0);
+buildWeightTable(1);
+buildWeightTable(2);
+buildFinalTable();
+</script>
+</body>
+</html>
