@@ -69,6 +69,17 @@
             text-align: center;
             color: #7f8c8d;
         }
+        /* Tambahkan ini di dalam bagian <style> */
+        .disabled {
+            pointer-events: none; /* Membuat link tidak bisa diklik */
+            background-color: #f2f2f2 !important; /* Warna background jadi abu-abu */
+            color: #95a5a6 !important; /* Warna teks pudar */
+            border-color: #ddd !important;
+            cursor: not-allowed;
+        }
+        .disabled .badge {
+            background: #bdc3c7; /* Warna badge jadi abu-abu */
+        }
     </style>
 </head>
 <body>
